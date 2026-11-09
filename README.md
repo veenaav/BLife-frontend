@@ -58,12 +58,38 @@ npm run dev
 
 ---
 
-## ☁️ Continuous Deployment (CI/CD)
+## ☁️ AWS CloudFormation Infrastructure & Deployment
+
+All core AWS infrastructure (S3 hosting, CloudFront CDN reverse proxy, Elastic Beanstalk API origin, and IAM security) is centrally managed in the [`BLife-deploy`](../BLife-deploy) repository.
+
+Refer to [`BLife-deploy/README.md`](../BLife-deploy/README.md) for full infrastructure templates, stack creation, and configuration options.
+
+### Frontend Code Build & S3 Sync
+
+Once the CloudFormation stack in `BLife-deploy` is deployed, frontend code can be built and deployed manually or via GitHub Actions:
+
+```bash
+# 1. Install & Build
+npm ci
+npm run build
+
+# 2. Sync to S3 (retrieve bucket name from CloudFormation output)
+BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name blife-prod --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text --region ap-southeast-2)
+aws s3 sync dist/ s3://${BUCKET_NAME} --delete
+
+# 3. Invalidate CloudFront Cache
+CF_ID=$(aws cloudformation describe-stacks --stack-name blife-prod --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" --output text --region ap-southeast-2)
+aws cloudfront create-invalidation --distribution-id ${CF_ID} --paths "/*"
+```
+
+---
+
+## 🔄 Continuous Deployment (CI/CD)
 
 The frontend is continuously built and deployed to **AWS S3** and distributed globally via **Amazon CloudFront** through GitHub Actions on every push to `main`.
 
 ### Deployment Flow:
 1. Triggered on push to `main` branch.
 2. Installs dependencies and runs `npm run build` using `VITE_BASE_URL="/"`.
-3. Syncs build output (`dist/`) directly to private S3 bucket (`bliffe-frontend-dev`).
-4. Automatically invalidates the CloudFront cache (`/*`) on distribution `E22IM021D3GUIA`.
+3. Syncs build output (`dist/`) directly to the private S3 bucket.
+4. Automatically invalidates the CloudFront cache (`/*`).
