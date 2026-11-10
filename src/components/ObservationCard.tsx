@@ -8,7 +8,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 
-// Visual style mapping for identification verification pills matching B-LIFFE dark palette
+// Visual style mapping for identification verification pills matching BLife dark palette
 const STATUS_STYLES: Record<IdentificationStatus, { bg: string; text: string; border: string }> = {
   Identified: {
     bg: 'bg-[#133D2F]',

@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Pencil,
   Trash2,
+  ShieldAlert,
   MapPin,
   Calendar,
   Camera,
@@ -18,8 +19,10 @@ import {
 import { db, type Observation, type IdentificationStatus, BASIS_OF_RECORD_OPTIONS } from '@/db/database'
 import { getTagById } from '@/lib/tagCatalogue'
 import { reverseGeocodeCoordinates } from '@/lib/reverseGeocode'
+import { useProfile } from '@/context/ProfileContext'
+import { getCurrentUserId } from '@/lib/profileService'
 
-// Status styling configuration matching B-LIFFE dark forest palette
+// Status styling configuration matching BLife dark forest palette
 const STATUS_STYLES: Record<IdentificationStatus, { bg: string; text: string; border: string }> = {
   Identified: {
     bg: 'bg-[#133D2F]',
@@ -48,6 +51,10 @@ export default function ObservationDetailPage() {
   const [activePhotoIdx, setActivePhotoIdx] = useState(0)
   const [resolvedLocationName, setResolvedLocationName] = useState<string>('')
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isUnauthorized, setIsUnauthorized] = useState(false)
+
+  const { profile } = useProfile()
+  const currentUserId = profile?.id || getCurrentUserId()
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -62,7 +69,14 @@ export default function ObservationDetailPage() {
       try {
         const item = await db.observations.get(id)
         if (item) {
-          setObservation(item)
+          // Row-Level Security: Verify observer ownership
+          const ownerId = item.observer_id || item.observerId || 'bliffe-demo-user'
+          if (ownerId !== currentUserId) {
+            setIsUnauthorized(true)
+            setObservation(null)
+          } else {
+            setObservation(item)
+          }
         }
       } catch (err) {
         console.error('Failed to load observation:', err)
@@ -171,7 +185,7 @@ export default function ObservationDetailPage() {
       attribution: '© OpenStreetMap contributors',
     }).addTo(map)
 
-    // Themed B-LIFFE Pin Marker
+    // Themed BLife Pin Marker
     const customIcon = L.divIcon({
       className: 'bliffe-pin-marker',
       html: `<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:#0D2D22;border:2.5px solid #20D6A0;box-shadow:0 4px 14px rgba(0,0,0,0.7);">
@@ -227,6 +241,29 @@ export default function ObservationDetailPage() {
       <div className="mx-auto max-w-2xl px-4 py-12 text-center text-[#7B9586]">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#A6F16A] border-t-transparent mb-3" />
         <p className="text-sm font-medium">Loading observation details...</p>
+      </div>
+    )
+  }
+
+  if (isUnauthorized) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center space-y-4 text-[#F0F5EF]">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0D2D22] border border-[#1C4D3C] text-amber-400 shadow-xl shadow-[#061812]/50">
+          <ShieldAlert className="h-8 w-8 text-amber-400" />
+        </div>
+        <h2 className="text-xl font-bold text-white">Private Observation</h2>
+        <p className="text-xs sm:text-sm text-[#B2C8BA] max-w-sm mx-auto leading-relaxed">
+          This observation record is protected by row-level access control. Only the authenticated observer who created it can view or edit its details.
+        </p>
+        <div className="pt-2">
+          <Link
+            to="/observations"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] text-[#061812] text-xs font-extrabold uppercase tracking-wider shadow-lg shadow-[#20D6A0]/20 hover:opacity-95 transition-all"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Return to My Records</span>
+          </Link>
+        </div>
       </div>
     )
   }
@@ -637,6 +674,11 @@ export default function ObservationDetailPage() {
                 <p className="text-xs font-mono text-[#20D6A0]">
                   {observation.latitude?.toFixed(5)}° N, {observation.longitude?.toFixed(5)}° E
                   {observation.accuracyMeters ? ` • Accuracy: ±${Math.round(observation.accuracyMeters)}m` : ''}
+                  {observation.isAtExactSpot === 'No' && observation.estimatedDistanceMeters ? (
+                    <span className="text-[#A6F16A] font-sans ml-1">
+                      • Estimated ~{observation.estimatedDistanceMeters}m away
+                    </span>
+                  ) : null}
                 </p>
               )}
             </div>

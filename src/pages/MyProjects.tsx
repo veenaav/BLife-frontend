@@ -8,10 +8,14 @@ import {
   toggleJoinedProject,
   countProjectObservations,
 } from '@/lib/projectStorage'
+import { useProfile } from '@/context/ProfileContext'
+import { getCurrentUserId } from '@/lib/profileService'
 
 
 export default function MyProjects() {
   const navigate = useNavigate()
+  const { profile } = useProfile()
+  const currentUserId = profile?.id || getCurrentUserId()
   const [joinedProjects, setJoinedProjects] = useState<Project[]>([])
   const [observationCounts, setObservationCounts] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
@@ -25,9 +29,12 @@ export default function MyProjects() {
       setJoinedProjects(filtered)
 
       const allObservations = await db.observations.toArray()
+      const userObservations = allObservations.filter(
+        (obs) => (obs.observer_id || obs.observerId || 'bliffe-demo-user') === currentUserId
+      )
       const counts: Record<string, number> = {}
       for (const p of filtered) {
-        counts[p.id] = countProjectObservations(p.id, allObservations)
+        counts[p.id] = countProjectObservations(p.id, userObservations)
       }
       setObservationCounts(counts)
     } catch (err) {
@@ -130,16 +137,22 @@ export default function MyProjects() {
                     </p>
                   )}
 
-                  {proj.targetRegion && (
+                  {(proj.targetRegion || proj.district) && (
                     <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[#B2C8BA]">
                       <MapPin className="h-3.5 w-3.5 shrink-0 text-[#A6F16A]" />
-                      <span className="truncate">{proj.targetRegion}</span>
+                      <span className="truncate">
+                        {[proj.targetRegion, proj.district].filter(Boolean).join(', ')}
+                      </span>
                     </p>
                   )}
 
-                  {proj.description && (
-                    <p className="mt-2 text-xs text-[#7B9586] line-clamp-2 leading-relaxed">
+                  {proj.description && proj.description.trim() ? (
+                    <p className="mt-2 text-xs text-[#B2C8BA] line-clamp-2 leading-relaxed">
                       {proj.description}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs italic text-[#7B9586]">
+                      No project description provided.
                     </p>
                   )}
                 </div>

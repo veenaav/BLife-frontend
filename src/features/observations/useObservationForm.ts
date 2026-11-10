@@ -19,6 +19,8 @@ import { useObservationGeolocation } from './useObservationGeolocation'
 import { generateId } from '@/lib/utils'
 import { createObservationOnBackend, updateObservationOnBackend } from '@/lib/apiService'
 import { extractExifLocation, type ExifLocationResult } from '@/lib/exifReader'
+import { useProfile } from '@/context/ProfileContext'
+import { getCurrentUserId } from '@/lib/profileService'
 
 export function useObservationForm() {
   const { projectId, wardId, surveyId, id } = useParams<{
@@ -36,6 +38,13 @@ export function useObservationForm() {
 
   const [existingRecord, setExistingRecord] = useState<Observation | null>(null)
   const [isLoadingExisting, setIsLoadingExisting] = useState(Boolean(id))
+
+  // User Profile & Authentication for Row-Level Security
+  const { profile, isGuest } = useProfile()
+  const currentUserId = profile?.id || getCurrentUserId()
+  const observerDisplayName = isGuest
+    ? 'Guest Observer'
+    : (profile?.displayName || profile?.fullName || undefined)
 
   // Context state for active survey session
   const [activeProject, setActiveProject] = useState<Project | null>(null)
@@ -81,6 +90,11 @@ export function useObservationForm() {
   const [hasTraditionalKnowledge, setHasTraditionalKnowledge] = useState<YesNo | ''>('')
   const [traditionalKnowledgeSource, setTraditionalKnowledgeSource] = useState('')
   const [otherTraditionalKnowledgeSource, setOtherTraditionalKnowledgeSource] = useState('')
+
+  // Distance and position verification state
+  const [isAtExactSpot, setIsAtExactSpot] = useState<YesNo | ''>('Yes')
+  const [estimatedDistanceMeters, setEstimatedDistanceMeters] = useState<number | ''>('')
+
 
   // Modals & Tips visibility
   const [showLocationTips, setShowLocationTips] = useState(false)
@@ -174,6 +188,12 @@ export function useObservationForm() {
         setHasTraditionalKnowledge(existing.hasTraditionalKnowledge || '')
         setTraditionalKnowledgeSource(existing.traditionalKnowledgeSource || '')
         setOtherTraditionalKnowledgeSource(existing.otherTraditionalKnowledgeSource || '')
+        setIsAtExactSpot(existing.isAtExactSpot || 'Yes')
+        setEstimatedDistanceMeters(
+          existing.estimatedDistanceMeters !== undefined && existing.estimatedDistanceMeters !== null
+            ? existing.estimatedDistanceMeters
+            : ''
+        )
 
         if (
           existing.latitude !== null &&
@@ -324,6 +344,8 @@ export function useObservationForm() {
     setHasTraditionalKnowledge('')
     setTraditionalKnowledgeSource('')
     setOtherTraditionalKnowledgeSource('')
+    setIsAtExactSpot('Yes')
+    setEstimatedDistanceMeters('')
     geo.resetLocation()
     setPhotos([])
     setPhotoMetadata([])
@@ -685,6 +707,10 @@ export function useObservationForm() {
         const updatedObservation: Observation = {
           ...existingRecord,
           id: existingRecord.id,
+          // Row-Level Security: Link record strictly to observer
+          observer_id: existingRecord.observer_id || existingRecord.observerId || currentUserId,
+          observerId: existingRecord.observerId || existingRecord.observer_id || currentUserId,
+          observerName: existingRecord.observerName || observerDisplayName,
           surveyId: existingRecord.surveyId,
           wardId: geo.autoWardId ?? existingRecord.wardId,
           wardName:
@@ -738,6 +764,11 @@ export function useObservationForm() {
               ? geo.locationAccuracy
               : null,
           gpsCapturedAt: geo.gpsCapturedAt || existingRecord.gpsCapturedAt || null,
+          isAtExactSpot: isAtExactSpot || undefined,
+          estimatedDistanceMeters:
+            isAtExactSpot === 'No' && estimatedDistanceMeters !== '' && !isNaN(Number(estimatedDistanceMeters))
+              ? Number(estimatedDistanceMeters)
+              : undefined,
           photo: photos[primaryPhotoIndex] || photos[0] || null,
           photos,
           photoMetadata: photoMetadata.length > 0 ? photoMetadata : undefined,
@@ -760,7 +791,8 @@ export function useObservationForm() {
           updatedObservation.syncStatus = 'pending'
         }
         await db.observations.put(updatedObservation)
-        setSaved(true)
+        resetForm()
+        return true
       } else {
         const finalProjectId = isProjectContext
           ? initialProjectId
@@ -775,6 +807,10 @@ export function useObservationForm() {
 
         const newObservation: Observation = {
           id: generateId(),
+          // Row-Level Security: Private by default, strictly linked to authenticated observer
+          observer_id: currentUserId,
+          observerId: currentUserId,
+          observerName: observerDisplayName,
           surveyId: surveyId || undefined,
           wardId: geo.autoWardId || undefined,
           wardName:
@@ -828,6 +864,11 @@ export function useObservationForm() {
               ? geo.locationAccuracy
               : null,
           gpsCapturedAt: geo.gpsCapturedAt || null,
+          isAtExactSpot: isAtExactSpot || undefined,
+          estimatedDistanceMeters:
+            isAtExactSpot === 'No' && estimatedDistanceMeters !== '' && !isNaN(Number(estimatedDistanceMeters))
+              ? Number(estimatedDistanceMeters)
+              : undefined,
           photo: photos[primaryPhotoIndex] || photos[0] || null,
           photos,
           photoMetadata: photoMetadata.length > 0 ? photoMetadata : undefined,
@@ -847,10 +888,13 @@ export function useObservationForm() {
           newObservation.syncStatus = 'pending'
         }
         await db.observations.add(newObservation)
-        setSaved(true)
+        resetForm()
+        return true
       }
+      return true
     } catch (error) {
       alert(`Failed to save observation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return false
     } finally {
       setIsSaving(false)
     }
@@ -956,10 +1000,15 @@ export function useObservationForm() {
     setShowPhotoTips,
     isProcessingPhotos,
     saved,
+    setSaved,
     isSaving,
     photoPreviews,
     primaryPhotoIndex,
     selectPrimaryPhoto,
+    isAtExactSpot,
+    setIsAtExactSpot,
+    estimatedDistanceMeters,
+    setEstimatedDistanceMeters,
     geo,
     resetForm,
     handleStatusChange,

@@ -198,6 +198,7 @@ export interface Project {
   status: 'active' | 'completed' | 'archived'
   organization?: string // Organizing body (e.g. "Kerala State Biodiversity Board", "City Corporation")
   targetRegion?: string // Target geographic district or city (e.g. "Thiruvananthapuram District")
+  district?: string // District name (e.g. "Thiruvananthapuram")
   createdAt: string
   updatedAt: string
   syncStatus: SyncStatus
@@ -248,6 +249,10 @@ export interface Survey {
  */
 export interface Observation {
   id?: string // UUID primary key
+  // Row-level security, access control & Darwin Core ownership
+  observer_id?: string // Authenticated user ID who created and owns this record
+  observerId?: string // Alias for compatibility
+  observerName?: string // Field alias or display name at time of capture
   surveyId?: string // Foreign key -> Survey.id (optional for standalone observations)
   wardId?: string // Foreign key -> Ward.id (optional, preferred identifier from GIS boundary)
   wardName?: string // Administrative ward name for display (e.g. "Ward 14 – Palayam")
@@ -285,6 +290,8 @@ export interface Observation {
   otherTraditionalKnowledgeSource?: string // Custom source description (required if Other)
 
   // Spatial & Geolocation (Darwin Core Location)
+  targetRegion?: string // Geographic area, locality, or ward (e.g. "Palayam Ward, Near Secretariat")
+  district?: string // District name (e.g. "Thiruvananthapuram")
   gps_latitude?: number | null // Raw browser geolocation latitude (or null if manual-only)
   gps_longitude?: number | null // Raw browser geolocation longitude (or null if manual-only)
   latitude: number | null // Final observation latitude
@@ -292,6 +299,8 @@ export interface Observation {
   location_source?: LocationSource | null // 'GPS' | 'Manual Pin Adjustment'
   accuracyMeters: number | null // Actual GPS accuracy radius in metres (or null if unavailable)
   gpsCapturedAt?: string | null // ISO timestamp when GPS coordinates were acquired
+  isAtExactSpot?: YesNo // 'Yes' | 'No' (whether observer was at the exact spot)
+  estimatedDistanceMeters?: number | null // Estimated distance from observer in meters
 
   // Temporal (Darwin Core Event)
   observationAt: string
@@ -430,10 +439,35 @@ export class ShrishtiDatabase extends Dexie {
             }
           })
       })
+
+    // Version 8: Row-Level Security & Access Control: index observer_id for strict per-user privacy queries
+    this.version(8)
+      .stores({
+        projects: 'id, name, status, syncStatus',
+        wards: 'id, projectId, wardNumber, syncStatus',
+        surveys: 'id, projectId, wardId, leadObserver, syncStatus',
+        observations:
+          'id, observer_id, surveyId, wardId, projectId, *projectIds, speciesName, speciesGroup, syncStatus, verificationStatus, organismStatus, locationVisibility, location_source, basis_of_record, *tags',
+      })
+      .upgrade((tx) => {
+        return tx
+          .table('observations')
+          .toCollection()
+          .modify((obs: Observation) => {
+            // Safe backward-compatible ownership migration:
+            // Attribute legacy unowned local records to the default demo user ('bliffe-demo-user')
+            if (!obs.observer_id) {
+              obs.observer_id = obs.observerId || 'bliffe-demo-user'
+            }
+            if (!obs.observerId) {
+              obs.observerId = obs.observer_id
+            }
+          })
+      })
   }
 }
 
 export const db = new ShrishtiDatabase()
 
 // Backward-compatible alias for existing imports
-export { ShrishtiDatabase as VasudhaDatabase }
+export { ShrishtiDatabase as VasudhaDatabase }

@@ -24,6 +24,7 @@ export function useProjects() {
   const [name, setName] = useState('')
   const [organization, setOrganization] = useState('')
   const [targetRegion, setTargetRegion] = useState('')
+  const [district, setDistrict] = useState('')
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -45,16 +46,19 @@ export function useProjects() {
       const serverProjects = await fetchProjectsFromBackend()
       if (serverProjects && Array.isArray(serverProjects)) {
         for (const sp of serverProjects) {
+          const existing = await db.projects.get(sp.id)
           await db.projects.put({
             id: sp.id,
-            name: sp.name,
-            organization: sp.organization,
-            targetRegion: sp.targetRegion,
-            description: sp.description,
-            status: sp.status || 'active',
-            startDate: sp.startDate,
-            createdAt: sp.createdAt,
-            updatedAt: sp.updatedAt,
+            name: sp.name || existing?.name || '',
+            organization: sp.organization !== undefined ? sp.organization : existing?.organization,
+            targetRegion: sp.targetRegion !== undefined ? sp.targetRegion : existing?.targetRegion,
+            district: sp.district !== undefined ? sp.district : existing?.district,
+            // Preserve complete description without accidental overwrites
+            description: sp.description !== undefined ? sp.description : existing?.description,
+            status: sp.status || existing?.status || 'active',
+            startDate: sp.startDate || existing?.startDate,
+            createdAt: sp.createdAt || existing?.createdAt || new Date().toISOString(),
+            updatedAt: sp.updatedAt || existing?.updatedAt || new Date().toISOString(),
             syncStatus: 'synced',
           })
         }
@@ -90,12 +94,15 @@ export function useProjects() {
     try {
       const newId = generateId()
       const now = new Date().toISOString()
+      // Preserve full multi-line description without truncation or loss of paragraph breaks
+      const cleanDescription = description.trim()
       const payload: Project = {
         id: newId,
         name: name.trim(),
         organization: organization.trim() || undefined,
         targetRegion: targetRegion.trim() || undefined,
-        description: description.trim() || undefined,
+        district: district.trim() || undefined,
+        description: cleanDescription || undefined,
         status: 'active',
         createdAt: now,
         updatedAt: now,
@@ -109,6 +116,7 @@ export function useProjects() {
           name: payload.name,
           organization: payload.organization,
           targetRegion: payload.targetRegion,
+          district: payload.district,
           description: payload.description,
           status: payload.status,
           syncStatus: 'synced',
@@ -124,6 +132,7 @@ export function useProjects() {
       setName('')
       setOrganization('')
       setTargetRegion('')
+      setDistrict('')
       setDescription('')
       setShowAddForm(false)
       await loadProjects()
@@ -217,6 +226,8 @@ export function useProjects() {
     setOrganization,
     targetRegion,
     setTargetRegion,
+    district,
+    setDistrict,
     description,
     setDescription,
     isSubmitting,

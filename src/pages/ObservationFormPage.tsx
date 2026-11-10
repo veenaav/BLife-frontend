@@ -18,11 +18,9 @@ import {
   Camera,
   Image as ImageIcon,
   CheckCircle2,
-  RotateCcw,
   Loader2,
   X,
   AlertCircle,
-  Compass,
   Info,
   ChevronDown,
   ChevronUp,
@@ -35,7 +33,6 @@ import {
   Eye,
   BookOpen,
 } from 'lucide-react'
-import LocationPickerMap from '@/components/LocationPickerMap'
 import TagSelector from '@/components/TagSelector'
 import { AppSelect, AppMultiSelect } from '@/components/ui/select'
 import {
@@ -61,8 +58,7 @@ export default function ObservationFormPage() {
 
   // Exclusive accordion behavior: only one section expanded at a time, all closed by default
   type SectionKey =
-    | 'photos'
-    | 'location'
+    | 'photo_location'
     | 'species'
     | 'ecology'
     | 'tk'
@@ -72,13 +68,38 @@ export default function ObservationFormPage() {
     | 'projects'
 
   const [activeSection, setActiveSection] = useState<SectionKey | null>(null)
+  const [showSpotInfo, setShowSpotInfo] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+
+  const handleOpenConfirm = () => {
+    if (!form.speciesName.trim() && !form.isUnknown) {
+      alert('Please enter a species name or mark Identification Status as "Unknown".')
+      return
+    }
+    if (form.isUnknown && form.photos.length === 0) {
+      alert('At least one photograph is required when species is marked as "Unknown".')
+      return
+    }
+    setShowConfirmModal(true)
+  }
+
+  const handleConfirmSubmit = async () => {
+    const success = await form.handleSaveObservation()
+    if (success) {
+      setShowConfirmModal(false)
+      setActiveSection(null)
+      if (form.isEditMode) {
+        form.navigate('/new-observation', { replace: true })
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   const toggleSection = (section: SectionKey) => {
     setActiveSection((current) => (current === section ? null : section))
   }
 
-  const openPhotos = activeSection === 'photos'
-  const openLocation = activeSection === 'location'
+  const openPhotoLocation = activeSection === 'photo_location'
   const openSpecies = activeSection === 'species'
   const openEcology = activeSection === 'ecology'
   const openTk = activeSection === 'tk'
@@ -167,27 +188,26 @@ export default function ObservationFormPage() {
 
       {/* Observation Form Container — Vertically Stacked Collapsible Cards */}
       <div className="space-y-4">
-        {/* 1. Photographs (Media / Photo) Collapsible Card */}
+        {/* 1. Photograph & Location Unified Collapsible Card */}
         <section className="rounded-3xl border border-[#1C4D3C] bg-[#0D2D22] p-5 sm:p-6 shadow-xl shadow-[#061812]/50 text-[#F0F5EF] transition-all">
           <div
             role="button"
             tabIndex={0}
-            onClick={() => toggleSection('photos')}
+            onClick={() => toggleSection('photo_location')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
-                toggleSection('photos')
+                toggleSection('photo_location')
               }
             }}
             className="flex items-center justify-between cursor-pointer select-none"
-            aria-expanded={openPhotos}
-            aria-label="Toggle Photographs section"
+            aria-expanded={openPhotoLocation}
+            aria-label="Toggle Photograph & Location section"
           >
             <div className="flex items-center gap-2 flex-wrap">
               <Camera className="h-5 w-5 text-[#A6F16A] shrink-0" />
               <h2 className="text-base sm:text-lg font-bold text-white">
-                Photographs{' '}
-                {form.isUnknown && <span className="text-red-500 font-bold text-base">*</span>}
+                Photograph &amp; Location <span className="text-red-500 font-bold text-base">*</span>
               </h2>
               <button
                 type="button"
@@ -206,10 +226,16 @@ export default function ObservationFormPage() {
                   {form.photos.length} {form.photos.length === 1 ? 'photo' : 'photos'}
                 </span>
               )}
+              {geo.location && (
+                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border bg-[#133D2F] text-[#A6F16A] border-[#1C4D3C]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#A6F16A] animate-pulse" />
+                  <span>{geo.locationSource === 'EXIF' ? 'EXIF Locked' : 'GPS Locked'}</span>
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {openPhotos ? (
+              {openPhotoLocation ? (
                 <ChevronUp className="h-5 w-5 text-[#A6F16A] transition-transform duration-200" />
               ) : (
                 <ChevronDown className="h-5 w-5 text-[#A6F16A] transition-transform duration-200" />
@@ -217,12 +243,12 @@ export default function ObservationFormPage() {
             </div>
           </div>
 
-          {openPhotos && (
-            <div className="mt-4 pt-3.5 border-t border-[#1C4D3C]/70">
+          {openPhotoLocation && (
+            <div className="mt-4 pt-3.5 border-t border-[#1C4D3C]/70 space-y-4">
               {/* Camera and Gallery Action Buttons */}
               <div className="grid grid-cols-2 gap-3">
                 <label
-                  htmlFor={form.saved ? undefined : 'camera-photo-input'}
+                  htmlFor="camera-photo-input"
                   className={`flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-dashed border-[#1C4D3C] p-3 text-center text-sm font-medium transition ${
                     form.saved
                       ? 'cursor-not-allowed bg-[#061812]/50 text-[#7B9586]'
@@ -234,7 +260,7 @@ export default function ObservationFormPage() {
                 </label>
 
                 <label
-                  htmlFor={form.saved ? undefined : 'gallery-photo-input'}
+                  htmlFor="gallery-photo-input"
                   className={`flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-dashed border-[#1C4D3C] p-3 text-center text-sm font-medium transition ${
                     form.saved
                       ? 'cursor-not-allowed bg-[#061812]/50 text-[#7B9586]'
@@ -251,7 +277,7 @@ export default function ObservationFormPage() {
                 type="file"
                 accept="image/*"
                 capture="environment"
-                disabled={form.saved}
+                
                 className="hidden"
                 onChange={(e) => {
                   form.handleAddPhotos(e.target.files, true)
@@ -264,7 +290,7 @@ export default function ObservationFormPage() {
                 type="file"
                 accept="image/*"
                 multiple
-                disabled={form.saved}
+                
                 className="hidden"
                 onChange={(e) => {
                   form.handleAddPhotos(e.target.files, false)
@@ -273,310 +299,239 @@ export default function ObservationFormPage() {
               />
 
               {/* Automatic Location Status Indicator for Photos */}
-              <div className="mt-3.5 space-y-2.5">
-                {geo.isGettingLocation || form.isProcessingPhotos ? (
-                  <div className="flex items-center gap-2 rounded-2xl bg-[#061812] border border-[#1C4D3C] p-3 text-xs text-[#A6F16A]">
-                    <Loader2 className="h-4 w-4 animate-spin text-[#A6F16A] shrink-0" />
-                    <span>Extracting photo EXIF GPS metadata...</span>
+              {geo.isGettingLocation || form.isProcessingPhotos ? (
+                <div className="flex items-center gap-2 rounded-2xl bg-[#061812] border border-[#1C4D3C] p-3 text-xs text-[#A6F16A]">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#A6F16A] shrink-0" />
+                  <span>Extracting photo EXIF GPS metadata...</span>
+                </div>
+              ) : form.exifWarning ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-2xl bg-amber-950/40 border border-amber-600/50 p-3 text-xs text-amber-200">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-amber-300">No GPS in Photo Metadata</p>
+                      <p className="text-[11px] text-amber-200/80 mt-0.5">
+                        {form.exifWarning}
+                      </p>
+                    </div>
                   </div>
-                ) : geo.location ? (
-                  <div className="flex items-center justify-between gap-2 rounded-2xl bg-[#133D2F]/50 border border-[#1C4D3C] p-3 text-xs text-[#F0F5EF]">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CheckCircle2 className="h-4 w-4 text-[#A6F16A] shrink-0" />
-                      <div className="truncate">
-                        <span className="font-semibold text-[#A6F16A]">
-                          {geo.locationSource === 'EXIF'
-                            ? 'Location extracted (Photo EXIF)'
-                            : 'Location captured (Device GPS)'}
-                        </span>
-                        {geo.locationAccuracy !== null && (
-                          <span className="text-[11px] text-[#B2C8BA] ml-1.5">
-                            ±{Math.round(geo.locationAccuracy)}m
+                  <button
+                    type="button"
+                    onClick={form.handleUseDeviceGps}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0D2D22] border border-[#1C4D3C] text-[#A6F16A] hover:bg-[#133D2F] font-bold text-xs shrink-0 self-start sm:self-center transition-colors cursor-pointer"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-[#A6F16A]" />
+                    <span>Use Device GPS</span>
+                  </button>
+                </div>
+              ) : null}
+
+              {/* Single Unified Container: Photo Thumbnail alongside Auto-Detected Location Details */}
+              {form.photoPreviews.length > 0 && (
+                <div className="rounded-2xl border border-[#1C4D3C] bg-[#061812] p-3.5 sm:p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5">
+                    {/* Thumbnail Preview */}
+                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 overflow-hidden rounded-2xl border border-[#1C4D3C] bg-[#061812] shadow-sm">
+                      <img
+                        src={form.photoPreviews[form.primaryPhotoIndex] || form.photoPreviews[0]}
+                        alt="Observation preview"
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          form.handleRemovePhoto(form.primaryPhotoIndex)
+                        }}
+                        className="absolute top-1.5 right-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-red-600/90 text-white shadow-md hover:bg-red-700 active:scale-95 cursor-pointer"
+                        aria-label="Remove photo"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Alongside: Auto-Detected Location Information */}
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {geo.location && (
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
+                            geo.locationSource === 'EXIF'
+                              ? 'bg-cyan-950/70 border-cyan-600/50 text-cyan-300'
+                              : 'bg-[#133D2F] border-[#20D6A0]/40 text-[#A6F16A]'
+                          }`}>
+                            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                            <span>{geo.locationSource === 'EXIF' ? 'EXIF Locked' : 'GPS Locked'}</span>
+                          </span>
+                        )}
+
+                        {geo.autoWardNumber && (
+                          <span className="rounded bg-[#0D2D22] border border-[#1C4D3C] px-2 py-0.5 font-mono text-[10px] text-[#A6F16A]">
+                            Ward {geo.autoWardNumber}
                           </span>
                         )}
                       </div>
-                    </div>
-                    <span className="font-mono text-[11px] text-[#20D6A0] shrink-0">
-                      {geo.location.latitude.toFixed(5)}, {geo.location.longitude.toFixed(5)}
-                    </span>
-                  </div>
-                ) : form.exifWarning ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-2xl bg-amber-950/40 border border-amber-600/50 p-3 text-xs text-amber-200">
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-amber-300">No GPS in Photo Metadata</p>
-                        <p className="text-[11px] text-amber-200/80 mt-0.5">
-                          {form.exifWarning}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={form.handleUseDeviceGps}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0D2D22] border border-[#1C4D3C] text-[#A6F16A] hover:bg-[#133D2F] font-bold text-xs shrink-0 self-start sm:self-center transition-colors cursor-pointer"
-                    >
-                      <MapPin className="h-3.5 w-3.5 text-[#A6F16A]" />
-                      <span>Use Device GPS</span>
-                    </button>
-                  </div>
-                ) : geo.locationError ? (
-                  <div className="flex items-center justify-between gap-2 rounded-2xl bg-amber-950/40 border border-amber-800/60 p-3 text-xs text-amber-200">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
-                      <span className="truncate">
-                        Location unavailable: {geo.locationError}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => geo.getLocation()}
-                      className="text-xs text-[#A6F16A] underline font-semibold shrink-0 cursor-pointer"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                ) : null}
-              </div>
 
-              {/* Photo Previews with Location Badge per Photo & Primary Reference Selector */}
-              {form.photoPreviews.length > 0 && (
-                <div className="mt-4 space-y-2.5">
-                  {/* Distinct Coordinates Notice if multiple photos uploaded */}
-                  {form.photoMetadata.length > 1 && (
-                    <div className="flex items-center justify-between text-xs text-[#B2C8BA] bg-[#061812] border border-[#1C4D3C] px-3 py-1.5 rounded-xl">
-                      <span>Tap a photo to set its GPS as primary location:</span>
-                      <span className="font-semibold text-[#A6F16A]">
-                        Photo {form.primaryPhotoIndex + 1} of {form.photoPreviews.length}
-                      </span>
-                    </div>
-                  )}
+                      {/* Location Name */}
+                      <p className="text-base font-bold text-white truncate">
+                        {geo.resolvedLocationName ||
+                          (geo.isReverseGeocoding
+                            ? 'Resolving place name...'
+                            : geo.location
+                            ? 'Location coordinates acquired'
+                            : 'Location not detected')}
+                      </p>
 
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {form.photoPreviews.map((url, idx) => {
-                      const meta = form.photoMetadata[idx]
-                      const hasCoord = meta?.latitude !== null && meta?.latitude !== undefined
-                      const isPrimary = form.primaryPhotoIndex === idx
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => {
-                            if (hasCoord) form.selectPrimaryPhoto(idx)
-                          }}
-                          className={`relative aspect-square overflow-hidden rounded-2xl border transition-all ${
-                            isPrimary
-                              ? 'border-[#A6F16A] ring-2 ring-[#A6F16A]/50 shadow-lg'
-                              : 'border-[#1C4D3C] hover:border-[#A6F16A]/40'
-                          } bg-[#061812] group ${hasCoord ? 'cursor-pointer' : ''}`}
-                          title={hasCoord ? (isPrimary ? 'Primary GPS reference' : 'Click to set as primary GPS reference') : undefined}
-                        >
-                          <img
-                            src={url}
-                            alt={`Preview ${idx + 1}`}
-                            className="h-full w-full object-cover"
-                          />
-
-                          {/* Primary reference star badge */}
-                          {isPrimary && (
-                            <div className="absolute top-1.5 left-1.5 z-10">
-                              <span className="inline-flex items-center gap-1 rounded-md bg-[#A6F16A] text-[#061812] px-1.5 py-0.5 text-[9px] font-bold shadow-md">
-                                ★ Primary
+                      {/* Coordinates */}
+                      {geo.location ? (
+                        <div className="space-y-0.5">
+                          <p className="font-mono text-xs text-[#20D6A0]">
+                            {geo.location.latitude.toFixed(5)}° N, {geo.location.longitude.toFixed(5)}° E
+                            {geo.locationAccuracy !== null && geo.locationSource !== 'EXIF' && (
+                              <span className="text-[#B2C8BA] font-sans ml-1.5">
+                                (±{Math.round(geo.locationAccuracy)}m)
                               </span>
-                            </div>
-                          )}
-
-                          {/* Per-photo GPS status pill */}
-                          <div className="absolute bottom-1 left-1 right-1 pointer-events-none">
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold border backdrop-blur-sm truncate max-w-full ${
-                                hasCoord
-                                  ? meta?.locationSource === 'EXIF'
-                                    ? 'bg-[#061812]/90 border-cyan-700/60 text-cyan-300'
-                                    : 'bg-[#061812]/90 border-[#1C4D3C] text-[#A6F16A]'
-                                  : 'bg-[#061812]/90 border-amber-800/60 text-amber-300'
-                              }`}
-                            >
-                              <MapPin className="h-2.5 w-2.5 shrink-0" />
-                              <span className="truncate">
-                                {hasCoord
-                                  ? meta?.locationSource === 'EXIF'
-                                    ? 'EXIF'
-                                    : 'GPS'
-                                  : 'No GPS'}
-                              </span>
-                            </span>
-                          </div>
-
-                          {!form.saved && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                form.handleRemovePhoto(idx)
-                              }}
-                              className="absolute top-1.5 right-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-red-600/90 text-white shadow-md hover:bg-red-700 active:scale-95 cursor-pointer"
-                              aria-label="Remove photo"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
+                            )}
+                          </p>
+                          {geo.autoWardName && (
+                            <p className="text-[11px] text-[#B2C8BA]">
+                              Ward: {geo.autoWardName}
+                            </p>
                           )}
                         </div>
-                      )
-                    })}
+                      ) : (
+                        <p className="text-xs text-[#7B9586]">
+                          GPS not present in image EXIF. Use "Use Device GPS" above to capture location.
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Multi-photo thumbnails strip if >1 photo */}
+                  {form.photoPreviews.length > 1 && (
+                    <div className="pt-2.5 border-t border-[#1C4D3C]/60 space-y-1.5">
+                      <p className="text-[11px] text-[#B2C8BA]">
+                        Tap a photo to select its location as the primary reference:
+                      </p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {form.photoPreviews.map((url, idx) => {
+                          const isPrimary = form.primaryPhotoIndex === idx
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => form.selectPrimaryPhoto(idx)}
+                              className={`relative h-13 w-13 shrink-0 rounded-xl overflow-hidden border cursor-pointer ${
+                                isPrimary
+                                  ? 'border-[#A6F16A] ring-2 ring-[#A6F16A]/50'
+                                  : 'border-[#1C4D3C] hover:border-[#A6F16A]/40'
+                              }`}
+                            >
+                              <img src={url} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />
+                              {isPrimary && (
+                                <span className="absolute bottom-0 inset-x-0 bg-[#A6F16A] text-[#061812] text-[8px] font-bold text-center leading-tight py-0.5">
+                                  Primary
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Sleek, Space-Efficient Distance & Position Verification */}
+              <div className="rounded-2xl border border-[#1C4D3C] bg-[#061812] p-3 sm:p-3.5 space-y-2.5 transition-all">
+                <div className="flex items-center justify-between gap-3">
+                  {/* Question Title & Subtle Info (ⓘ) Button */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs sm:text-sm font-semibold text-white">
+                      Are you at the exact spot?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSpotInfo(!showSpotInfo)}
+                      className="flex h-5 w-5 items-center justify-center rounded-full text-[#7B9586] hover:text-[#A6F16A] hover:bg-[#133D2F] transition-colors cursor-pointer shrink-0"
+                      title="Position verification guidance"
+                      aria-label="Toggle position verification guidance"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Sleek Horizontal Pill Toggle (Yes / No) */}
+                  <div className="inline-flex items-center rounded-xl bg-[#0D2D22] p-0.5 border border-[#1C4D3C] shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => form.setIsAtExactSpot('Yes')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        form.isAtExactSpot === 'Yes'
+                          ? 'bg-[#20D6A0] text-[#061812] shadow-xs'
+                          : 'text-[#B2C8BA] hover:text-white'
+                      }`}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => form.setIsAtExactSpot('No')}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        form.isAtExactSpot === 'No'
+                          ? 'bg-[#20D6A0] text-[#061812] shadow-xs'
+                          : 'text-[#B2C8BA] hover:text-white'
+                      }`}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+
+                {/* Combined Explanatory Tooltip Note (revealed on ⓘ click) */}
+                {showSpotInfo && (
+                  <div className="rounded-xl bg-[#0D2D22] border border-[#1C4D3C]/70 p-2.5 text-[11px] text-[#B2C8BA] leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                    Indicates whether recorded coordinates mark the organism&apos;s direct position or your observation point. If observing from a distance (e.g., organisms in water, on steep terrain, or in flight), specify the estimated distance in meters.
+                  </div>
+                )}
+
+                {/* Conditional Compact Input: Single line row sliding in smoothly */}
+                {form.isAtExactSpot === 'No' && (
+                  <div className="flex items-center gap-2.5 pt-2 border-t border-[#1C4D3C]/60 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label
+                      htmlFor="estimated-distance-input"
+                      className="text-xs font-medium text-[#A6F16A] shrink-0"
+                    >
+                      Estimated distance:
+                    </label>
+                    <div className="relative flex-1 max-w-[170px]">
+                      <input
+                        id="estimated-distance-input"
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={form.estimatedDistanceMeters}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          form.setEstimatedDistanceMeters(val === '' ? '' : Math.max(1, Number(val)))
+                        }}
+                        placeholder="e.g. 25"
+                        className="w-full h-8 rounded-lg border border-[#1C4D3C] bg-[#0D2D22] pl-2.5 pr-7 text-xs text-white placeholder-[#7B9586] focus:border-[#20D6A0] focus:outline-none focus:ring-1 focus:ring-[#20D6A0] transition-colors"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono text-[#7B9586] pointer-events-none">
+                        m
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 
-          {/* Tips for Great Field Photos Modal */}
+          {/* Tips Modals */}
           <PhotoTipsModal
             isOpen={form.showPhotoTips}
             onClose={() => form.setShowPhotoTips(false)}
           />
-        </section>
-
-        {/* 2. Location & Administrative Ward Collapsible Card */}
-        <section className="rounded-3xl border border-[#1C4D3C] bg-[#0D2D22] p-5 sm:p-6 shadow-xl shadow-[#061812]/50 text-[#F0F5EF] transition-all">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => toggleSection('location')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                toggleSection('location')
-              }
-            }}
-            className="flex items-center justify-between cursor-pointer select-none"
-            aria-expanded={openLocation}
-            aria-label="Toggle Location & Ward section"
-          >
-            <div className="flex items-center gap-2 flex-wrap">
-              <MapPin className="h-5 w-5 text-[#A6F16A] shrink-0" />
-              <h2 className="text-base sm:text-lg font-bold text-white">
-                Location & Ward <span className="text-red-500 font-bold text-base">*</span>
-              </h2>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  form.setShowLocationTips(true)
-                }}
-                className="flex h-5 w-5 sm:h-5.5 sm:w-5.5 items-center justify-center rounded-full bg-[#061812] border border-[#1C4D3C] text-[#A6F16A] hover:bg-[#133D2F] hover:border-[#A6F16A]/60 hover:text-white transition-colors cursor-pointer shrink-0"
-                aria-label="Tips for Accurate Location"
-                title="Tips for Accurate Location"
-              >
-                <Info className="h-3 w-3" />
-              </button>
-
-              {geo.location && (
-                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border bg-[#133D2F] text-[#A6F16A] border-[#1C4D3C]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#A6F16A] animate-pulse" />
-                  <span>{geo.locationSource === 'EXIF' ? 'EXIF Locked' : 'GPS Locked'}</span>
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {openLocation ? (
-                <ChevronUp className="h-5 w-5 text-[#A6F16A] transition-transform duration-200" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-[#A6F16A] transition-transform duration-200" />
-              )}
-            </div>
-          </div>
-
-          {openLocation && (
-            <div className="mt-4 pt-3.5 border-t border-[#1C4D3C]/70 space-y-3">
-              {/* Unified Location & Ward Information Card */}
-              <div
-                className={`rounded-2xl border p-4 transition-all ${
-                  geo.resolvedLocationName || geo.wardStatus === 'ward_identified'
-                    ? 'border-[#A6F16A]/50 bg-[#133D2F] text-white'
-                    : geo.isReverseGeocoding ||
-                      geo.wardStatus === 'identifying_ward' ||
-                      geo.wardStatus === 'requesting_location'
-                    ? 'border-[#1C4D3C] bg-[#061812] text-[#F0F5EF]'
-                    : geo.wardStatus === 'location_unavailable'
-                    ? 'border-red-800/80 bg-red-950/40 text-red-200'
-                    : 'border-[#1C4D3C] bg-[#061812] text-[#B2C8BA]'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 shrink-0">
-                    {geo.resolvedLocationName || geo.wardStatus === 'ward_identified' ? (
-                      <CheckCircle2 className="h-5 w-5 text-[#A6F16A]" />
-                    ) : geo.isReverseGeocoding ||
-                      geo.wardStatus === 'identifying_ward' ||
-                      geo.wardStatus === 'requesting_location' ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-[#A6F16A]" />
-                    ) : geo.wardStatus === 'location_unavailable' ? (
-                      <AlertCircle className="h-5 w-5 text-red-400" />
-                    ) : (
-                      <Compass className="h-5 w-5 text-[#7B9586]" />
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-base font-bold text-white">
-                        {geo.resolvedLocationName
-                          ? geo.resolvedLocationName
-                          : geo.isReverseGeocoding
-                          ? 'Resolving location...'
-                          : geo.location
-                          ? `${geo.location.latitude.toFixed(5)}, ${geo.location.longitude.toFixed(5)}`
-                          : geo.wardStatus === 'location_unavailable'
-                          ? 'Location unavailable'
-                          : 'Awaiting photo GPS'}
-                      </span>
-
-                      {geo.location && (
-                        <span className="rounded-full bg-[#061812] border border-[#1C4D3C] px-2 py-0.5 text-[10px] font-semibold text-[#A6F16A]">
-                          {geo.locationSource === 'EXIF' ? 'EXIF Locked' : 'GPS Locked'}
-                        </span>
-                      )}
-
-                      {geo.autoWardNumber && (
-                        <span className="rounded bg-[#061812] border border-[#1C4D3C] px-1.5 py-0.5 font-mono text-[10px] text-[#A6F16A]">
-                          Ward {geo.autoWardNumber}
-                        </span>
-                      )}
-                    </div>
-
-                    {geo.location && (
-                      <p className="mt-1 font-mono text-xs text-[#A6F16A]/90">
-                        {geo.location.latitude.toFixed(5)}, {geo.location.longitude.toFixed(5)}
-                        {geo.locationAccuracy !== null && geo.locationSource !== 'EXIF' && (
-                          <span className="text-[#B2C8BA] font-sans ml-1.5">
-                            (±{Math.round(geo.locationAccuracy)}m)
-                          </span>
-                        )}
-                        {geo.autoWardName && (
-                          <span className="text-[#B2C8BA] font-sans ml-2">
-                            • Ward: {geo.autoWardName}
-                          </span>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Static Read-Only OpenStreetMap Centered on Photo GPS Coordinates */}
-              <LocationPickerMap
-                location={geo.location}
-                locationSource={geo.locationSource}
-                locationAccuracy={geo.locationAccuracy}
-                locationName={geo.resolvedLocationName}
-                observationTime={form.displayObservationTime}
-                disabled={form.saved}
-              />
-            </div>
-          )}
-
-          {/* Tips for Accurate Location Modal */}
           <LocationTipsModal
             isOpen={form.showLocationTips}
             onClose={() => form.setShowLocationTips(false)}
@@ -633,7 +588,7 @@ export default function ObservationFormPage() {
                 <AppSelect
                   id="identificationStatus"
                   value={form.identificationStatus}
-                  disabled={form.saved}
+                  
                   onChange={(val) =>
                     form.handleStatusChange(val as IdentificationStatus | '')
                   }
@@ -658,7 +613,7 @@ export default function ObservationFormPage() {
                   id="speciesName"
                   type="text"
                   value={form.speciesName}
-                  disabled={form.saved || form.isUnknown}
+                  disabled={form.isUnknown}
                   onChange={(e) => form.setSpeciesName(e.target.value)}
                   placeholder={
                     form.isUnknown
@@ -681,7 +636,7 @@ export default function ObservationFormPage() {
                   id="localName"
                   type="text"
                   value={form.localName}
-                  disabled={form.saved || form.isUnknown}
+                  disabled={form.isUnknown}
                   onChange={(e) => form.setLocalName(e.target.value)}
                   placeholder={
                     form.isUnknown ? 'Locked for Unknown species' : 'e.g., Naattu Mayil'
@@ -702,7 +657,7 @@ export default function ObservationFormPage() {
                   id="scientificName"
                   type="text"
                   value={form.scientificName}
-                  disabled={form.saved || form.isUnknown}
+                  disabled={form.isUnknown}
                   onChange={(e) => form.setScientificName(e.target.value)}
                   placeholder="e.g. Pavo cristatus"
                   className="mt-2 w-full min-h-[48px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-3 text-base italic text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] disabled:cursor-not-allowed disabled:opacity-50"
@@ -720,7 +675,7 @@ export default function ObservationFormPage() {
                 <AppSelect
                   id="speciesGroup"
                   value={form.speciesGroup}
-                  disabled={form.saved}
+                  
                   onChange={(val) => {
                     form.setSpeciesGroup(val)
                     if (val !== 'Other') form.setOtherSpeciesGroup('')
@@ -735,7 +690,7 @@ export default function ObservationFormPage() {
                       id="otherSpeciesGroup"
                       type="text"
                       value={form.otherSpeciesGroup}
-                      disabled={form.saved}
+                      
                       onChange={(event) => form.setOtherSpeciesGroup(event.target.value)}
                       placeholder="e.g. Fungi"
                       className="w-full min-h-[48px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-3 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
@@ -755,7 +710,7 @@ export default function ObservationFormPage() {
                 <AppSelect
                   id="basisOfRecord"
                   value={form.basisOfRecord}
-                  disabled={form.saved}
+                  
                   onChange={(val) => form.setBasisOfRecord(val as BasisOfRecord)}
                   placeholder="Select Basis of Record..."
                   options={BASIS_OF_RECORD_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
@@ -830,7 +785,7 @@ export default function ObservationFormPage() {
                 <AppSelect
                   id="habitatType"
                   value={form.habitatType}
-                  disabled={form.saved}
+                  
                   onChange={(val) => form.setHabitatType(val)}
                   placeholder="Select Habitat type..."
                   options={HABITAT_TYPES.map((type) => ({ value: type, label: type }))}
@@ -849,7 +804,7 @@ export default function ObservationFormPage() {
                   <AppSelect
                     id="lifeStage"
                     value={form.lifeStage}
-                    disabled={form.saved}
+                    
                     onChange={(val) => form.setLifeStage(val)}
                     placeholder="Select stage..."
                     options={ECOLOGICAL_LIFE_STAGES.map((stage) => ({ value: stage, label: stage }))}
@@ -869,7 +824,7 @@ export default function ObservationFormPage() {
                     min={1}
                     step={1}
                     value={form.individualCount}
-                    disabled={form.saved}
+                    
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10)
                       form.setIndividualCount(Number.isNaN(val) ? 1 : val)
@@ -890,7 +845,7 @@ export default function ObservationFormPage() {
                 <AppMultiSelect
                   id="reproductiveAttributes"
                   values={form.reproductiveAttributes}
-                  disabled={form.saved}
+                  
                   onChange={(vals) => form.setReproductiveAttributes(vals)}
                   placeholder="Select reproductive attributes..."
                   options={REPRODUCTIVE_ATTRIBUTES.map((attr) => ({ value: attr, label: attr }))}
@@ -909,7 +864,7 @@ export default function ObservationFormPage() {
                   <AppSelect
                     id="sex"
                     value={form.sex}
-                    disabled={form.saved}
+                    
                     onChange={(val) => form.setSex(val)}
                     placeholder="Select sex..."
                     options={SEX_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
@@ -926,7 +881,7 @@ export default function ObservationFormPage() {
                   <AppSelect
                     id="season"
                     value={form.season}
-                    disabled={form.saved}
+                    
                     onChange={(val) => form.setSeason(val)}
                     placeholder="Select season..."
                     options={SEASONS.map((s) => ({ value: s, label: s }))}
@@ -945,7 +900,7 @@ export default function ObservationFormPage() {
                 <AppMultiSelect
                   id="evidenceOfPresence"
                   values={form.evidenceOfPresence}
-                  disabled={form.saved}
+                  
                   onChange={(vals) => form.setEvidenceOfPresence(vals)}
                   placeholder="Select evidence of presence..."
                   options={EVIDENCE_OF_PRESENCE.map((ev) => ({ value: ev, label: ev }))}
@@ -963,7 +918,7 @@ export default function ObservationFormPage() {
                 <AppSelect
                   id="microHabitat"
                   value={form.microHabitat}
-                  disabled={form.saved}
+                  
                   onChange={(val) => form.handleMicroHabitatChange(val)}
                   placeholder="Select substrate..."
                   options={MICRO_HABITATS.map((habitat) => ({ value: habitat, label: habitat }))}
@@ -975,7 +930,7 @@ export default function ObservationFormPage() {
                       id="otherMicroHabitat"
                       type="text"
                       value={form.otherMicroHabitat}
-                      disabled={form.saved}
+                      
                       onChange={(e) => form.setOtherMicroHabitat(e.target.value)}
                       placeholder="e.g. Canopy layer"
                       className="w-full min-h-[48px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-3 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
@@ -995,7 +950,7 @@ export default function ObservationFormPage() {
                 <AppSelect
                   id="organismStatus"
                   value={form.organismStatus}
-                  disabled={form.saved}
+                  
                   onChange={(val) => form.setOrganismStatus(val as OrganismStatus | '')}
                   placeholder="Select organism status..."
                   options={ORGANISM_STATUSES.map((status) => ({ value: status, label: status }))}
@@ -1072,7 +1027,7 @@ export default function ObservationFormPage() {
               <AppSelect
                 id="hasTraditionalKnowledge"
                 value={form.hasTraditionalKnowledge}
-                disabled={form.saved}
+                
                 onChange={(val) =>
                   form.handleTraditionalKnowledgeChange(val as YesNo | '')
                 }
@@ -1095,7 +1050,7 @@ export default function ObservationFormPage() {
                     <AppSelect
                       id="traditionalKnowledgeSource"
                       value={form.traditionalKnowledgeSource}
-                      disabled={form.saved}
+                      
                       onChange={(val) => form.handleTraditionalKnowledgeSourceChange(val)}
                       placeholder="Select source..."
                       options={TRADITIONAL_KNOWLEDGE_SOURCES.map((source) => ({ value: source, label: source }))}
@@ -1108,7 +1063,7 @@ export default function ObservationFormPage() {
                         id="otherTraditionalKnowledgeSource"
                         type="text"
                         value={form.otherTraditionalKnowledgeSource}
-                        disabled={form.saved}
+                        
                         onChange={(e) =>
                           form.setOtherTraditionalKnowledgeSource(e.target.value)
                         }
@@ -1182,7 +1137,7 @@ export default function ObservationFormPage() {
                 id="notes"
                 rows={3}
                 value={form.notes}
-                disabled={form.saved}
+                
                 onChange={(e) => form.setNotes(e.target.value)}
                 placeholder="Add brief notes"
                 className="mt-2 w-full rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-3 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] disabled:cursor-not-allowed disabled:opacity-50"
@@ -1233,7 +1188,7 @@ export default function ObservationFormPage() {
               <TagSelector
                 selectedTagIds={form.tags}
                 onChange={(newTags) => form.setTags(newTags)}
-                disabled={form.saved}
+                
               />
             </div>
           )}
@@ -1315,20 +1270,18 @@ export default function ObservationFormPage() {
                       key={opt.value}
                       role="radio"
                       aria-checked={isSelected}
-                      tabIndex={form.saved ? -1 : 0}
+                      
                       onClick={() => {
-                        if (form.saved) return
-                        form.setLocationVisibility(isSelected ? '' : opt.value)
+                                                form.setLocationVisibility(isSelected ? '' : opt.value)
                       }}
                       onKeyDown={(e) => {
-                        if (form.saved) return
-                        if (e.key === ' ' || e.key === 'Enter') {
+                                                if (e.key === ' ' || e.key === 'Enter') {
                           e.preventDefault()
                           form.setLocationVisibility(isSelected ? '' : opt.value)
                         }
                       }}
                       className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-all select-none ${
-                        form.saved ? 'cursor-not-allowed opacity-50' : ''
+                        ''
                       } ${
                         isSelected
                           ? 'border-[#A6F16A] bg-[#133D2F] shadow-md shadow-[#061812]/50'
@@ -1458,16 +1411,14 @@ export default function ObservationFormPage() {
                             <span className="truncate max-w-[200px]">
                               {proj ? proj.name : pId}
                             </span>
-                            {!form.saved && (
-                              <button
-                                type="button"
-                                onClick={() => form.handleRemoveProject(pId)}
-                                className="rounded-full p-0.5 hover:bg-[#061812] text-[#A6F16A] hover:text-rose-400 transition-colors cursor-pointer"
-                                aria-label={`Remove project ${proj ? proj.name : pId}`}
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => form.handleRemoveProject(pId)}
+                              className="rounded-full p-0.5 hover:bg-[#061812] text-[#A6F16A] hover:text-rose-400 transition-colors cursor-pointer"
+                              aria-label={`Remove project ${proj ? proj.name : pId}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           </span>
                         )
                       })}
@@ -1481,7 +1432,7 @@ export default function ObservationFormPage() {
                   <input
                     type="text"
                     value={form.projectSearchQuery}
-                    disabled={form.saved}
+                    
                     onChange={(e) => form.setProjectSearchQuery(e.target.value)}
                     placeholder="Search projects..."
                     className="w-full min-h-[44px] rounded-xl border border-[#1C4D3C] bg-[#061812] pl-10 pr-9 py-2.5 text-sm text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
@@ -1563,77 +1514,80 @@ export default function ObservationFormPage() {
           </section>
         )}
 
-        {/* 10. Save Observation Button (Lime-to-Turquoise Gradient) */}
-        <section className="pt-2">
+        {/* 10. Streamlined Submit Observation Button */}
+        <section className="pt-2 pb-6">
           <Button
             type="button"
-            className="min-h-[54px] w-full bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] hover:opacity-95 text-[#061812] font-extrabold text-base sm:text-lg tracking-wider uppercase shadow-xl shadow-[#20D6A0]/25 rounded-2xl active:scale-[0.98] transition-all cursor-pointer"
-            disabled={form.saved || form.isSaving}
-            onClick={form.handleSaveObservation}
+            className="w-full min-h-[54px] font-extrabold text-base sm:text-lg tracking-wider uppercase rounded-2xl transition-all shadow-xl bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] hover:opacity-95 text-[#061812] shadow-[#20D6A0]/25 active:scale-[0.98] cursor-pointer"
+            disabled={form.isSaving}
+            onClick={handleOpenConfirm}
           >
             {form.isSaving ? (
               <>
                 <Loader2 className="h-5 w-5 mr-2 animate-spin text-[#061812]" />
-                <span>{form.isEditMode ? 'Updating Record...' : 'Saving Record...'}</span>
+                <span>{form.isEditMode ? 'Updating Record...' : 'Submitting Observation...'}</span>
               </>
             ) : (
               <>
                 <CheckCircle2 className="h-5 w-5 mr-2 text-[#061812]" />
-                <span>{form.isEditMode ? 'Save Changes' : 'Save Observation'}</span>
+                <span>{form.isEditMode ? 'Save Changes' : 'Submit Observation'}</span>
               </>
             )}
           </Button>
-
-          {/* Saved Confirmation Banner */}
-          {form.saved && (
-            <div className="mt-4 rounded-3xl border border-[#1C4D3C] bg-[#0D2D22] p-5 text-center shadow-xl shadow-[#061812] text-[#F0F5EF]">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#133D2F] border border-[#1C4D3C] text-[#A6F16A] mb-2 shadow-xs">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <p className="text-base font-bold text-white">
-                {form.isEditMode
-                  ? 'Observation updated successfully!'
-                  : 'Observation saved to local database!'}
-              </p>
-              <p className="text-xs text-[#B2C8BA] mt-0.5">
-                Stored offline in IndexedDB on this device.
-              </p>
-              <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
-                {form.isEditMode ? (
-                  <Button
-                    type="button"
-                    className="flex-1 min-h-[46px] bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] text-[#061812] hover:opacity-95 text-sm font-bold tracking-wider uppercase rounded-xl transition-all shadow-xs cursor-pointer"
-                    onClick={() => form.navigate('/observations')}
-                  >
-                    <span>Back to Records</span>
-                  </Button>
-                ) : (
-                  <>
-                    {form.isProjectContext && (
-                      <Button
-                        type="button"
-                        className="flex-1 min-h-[46px] border border-[#1C4D3C] bg-[#061812] text-[#A6F16A] hover:bg-[#133D2F] text-sm font-bold tracking-wider uppercase rounded-xl transition-all cursor-pointer"
-                        onClick={() => form.navigate(`/projects/${form.initialProjectId}`)}
-                      >
-                        <ArrowLeft className="h-4 w-4 mr-1.5" />
-                        <span>Return to Project</span>
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      className="flex-1 min-h-[46px] bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] text-[#061812] hover:opacity-95 text-sm font-bold tracking-wider uppercase rounded-xl transition-all shadow-xs cursor-pointer"
-                      onClick={form.resetForm}
-                    >
-                      <RotateCcw className="h-4 w-4 mr-1.5 text-[#061812]" />
-                      <span>+ Record Next Observation</span>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
         </section>
       </div>
+
+      {/* Confirmation Dialog Modal */}
+      {showConfirmModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-modal-message"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={() => setShowConfirmModal(false)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl border border-[#1C4D3C] bg-[#0D2D22] p-5 sm:p-6 shadow-2xl shadow-black/80 text-[#F0F5EF]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#133D2F] border border-[#1C4D3C] text-[#A6F16A] mb-3 shadow-md">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+
+            <p id="confirm-modal-message" className="text-sm sm:text-base font-semibold text-white text-center leading-relaxed px-1">
+              Are you sure you want to submit this observation?
+            </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={form.isSaving}
+                onClick={() => setShowConfirmModal(false)}
+                className="min-h-[46px] rounded-xl border-[#1C4D3C] bg-[#061812] px-4 py-2.5 text-sm font-semibold tracking-wider uppercase text-[#B2C8BA] hover:bg-[#133D2F] hover:text-white transition-all cursor-pointer"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                disabled={form.isSaving}
+                onClick={handleConfirmSubmit}
+                className="min-h-[46px] rounded-xl bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] px-4 py-2.5 text-sm font-extrabold tracking-wider uppercase text-[#061812] hover:opacity-95 shadow-lg shadow-[#20D6A0]/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {form.isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin text-[#061812]" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>OK</span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

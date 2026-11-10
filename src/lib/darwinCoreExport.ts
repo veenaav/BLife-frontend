@@ -38,6 +38,7 @@ export interface DarwinCoreRecord {
   'dwc:habitat'?: string
   'dwc:fieldNotes'?: string
   'dwc:identificationVerificationStatus'?: string
+  'dwc:recordedBy'?: string
   /**
    * Custom tags and non-standard project fields are encapsulated in dynamicProperties
    * so they are not misrepresented as standard Darwin Core vocabulary.
@@ -56,6 +57,8 @@ export function toDarwinCoreRecord(obs: Observation): DarwinCoreRecord {
   })
 
   const dynamicProps = {
+    observer_id: obs.observer_id || obs.observerId,
+    observerName: obs.observerName,
     tags: enrichedTags,
     organismStatus: obs.organismStatus,
     locationVisibility: obs.locationVisibility,
@@ -87,6 +90,7 @@ export function toDarwinCoreRecord(obs: Observation): DarwinCoreRecord {
     'dwc:habitat': obs.habitatType || obs.microHabitat,
     'dwc:fieldNotes': obs.notes?.trim() || undefined,
     'dwc:identificationVerificationStatus': obs.verificationStatus,
+    'dwc:recordedBy': obs.observerName || obs.observer_id || obs.observerId || undefined,
     'dwc:dynamicProperties': JSON.stringify(dynamicProps),
   }
 }

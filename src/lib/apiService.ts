@@ -1,5 +1,5 @@
 import { db, type Project, type Observation, type Ward, type Survey } from '@/db/database'
-import { getAuthToken } from './profileService'
+import { getAuthToken, getCurrentUserId } from './profileService'
 import type { WardIdentificationResult } from './wardService'
 
 export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
@@ -122,8 +122,12 @@ export async function fetchObservationsFromBackend(filters?: {
   status?: string
   tag?: string
   search?: string
+  observer_id?: string
 }): Promise<Observation[]> {
   const params = new URLSearchParams()
+  // Row-Level Security: Scope query to authenticated observer_id
+  const resolvedObserverId = filters?.observer_id || getCurrentUserId()
+  if (resolvedObserverId) params.set('observer_id', resolvedObserverId)
   if (filters?.projectId) params.set('projectId', filters.projectId)
   if (filters?.wardId) params.set('wardId', filters.wardId)
   if (filters?.surveyId) params.set('surveyId', filters.surveyId)
@@ -168,8 +172,11 @@ export async function createObservationOnBackend(
     }
   }
 
+  const ownerId = observation.observer_id || observation.observerId || getCurrentUserId()
   const payload = {
     ...observation,
+    observer_id: ownerId,
+    observerId: ownerId,
     photos: photoUrls,
     photo: photoUrls[0] || null,
   }
@@ -208,8 +215,11 @@ export async function updateObservationOnBackend(
     }
   }
 
+  const ownerId = updates.observer_id || updates.observerId || getCurrentUserId()
   const payload = {
     ...updates,
+    observer_id: ownerId,
+    observerId: ownerId,
     ...(photoUrls.length > 0 && { photos: photoUrls }),
   }
 
@@ -393,8 +403,11 @@ export async function syncAllStoresWithBackend(): Promise<SyncAllResult> {
           }
         }
 
+        const ownerId = obs.observer_id || obs.observerId || getCurrentUserId()
         return {
           ...obs,
+          observer_id: ownerId,
+          observerId: ownerId,
           photos: photoUrls,
           photo: photoUrls[0] || null,
         }

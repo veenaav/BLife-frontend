@@ -194,3 +194,142 @@ select option:checked {
   background-color: #133D2F;
   color: #A6F16A;
 }
+
+/* ==============================================================================
+ * Leaflet Dark Nature Map Theme (BLife)
+ * ============================================================================== */
+
+/* Custom styled popup cards */
+.blife-map-popup .leaflet-popup-content-wrapper {
+  background: #0D2D22 !important;
+  color: #F0F5EF !important;
+  border: 1.5px solid #1C4D3C !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.8), 0 10px 10px -5px rgba(0, 0, 0, 0.6) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.blife-map-popup .leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.blife-map-popup .leaflet-popup-tip {
+  background: #0D2D22 !important;
+  border: 1.5px solid #1C4D3C !important;
+  box-shadow: none !important;
+}
+
+.blife-map-popup a.leaflet-popup-close-button {
+  color: #B2C8BA !important;
+  top: 8px !important;
+  right: 8px !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  background: rgba(6, 24, 18, 0.85) !important;
+  backdrop-filter: blur(4px) !important;
+  border: 1px solid #1C4D3C !important;
+  font-size: 15px !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+  z-index: 10 !important;
+}
+
+.blife-map-popup a.leaflet-popup-close-button:hover {
+  color: #A6F16A !important;
+  background: #133D2F !important;
+  border-color: #A6F16A !important;
+}
+
+/* Marker hover interactions */
+.blife-custom-pin-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.blife-pin-svg-wrapper {
+  transition: transform 0.15s ease, filter 0.15s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.blife-pin-svg-wrapper:hover {
+  transform: scale(1.18) translateY(-2px) !important;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.85)) !important;
+}
+
+.blife-cluster-bubble,
+.blife-single-pin {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+}
+
+.blife-cluster-bubble:hover,
+.blife-single-pin:hover {
+  transform: scale(1.12) !important;
+  border-color: #A6F16A !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.85), 0 0 0 5px rgba(166, 241, 106, 0.35) !important;
+}
+
+.blife-popup-btn:hover {
+  background: #1C4D3C !important;
+  color: #FFFFFF !important;
+}
+
+.blife-popup-btn:active {
+  transform: scale(0.97) !important;
+}
+
+/* Themed Leaflet Zoom Controls */
+.leaflet-bar {
+  border: 1px solid #1C4D3C !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-bar a {
+  background-color: #0D2D22 !important;
+  color: #A6F16A !important;
+  border-bottom: 1px solid #1C4D3C !important;
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #133D2F !important;
+  color: #20D6A0 !important;
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: none !important;
+}
+
+/* Themed Attribution */
+.leaflet-container .leaflet-control-attribution {
+  background: rgba(8, 34, 26, 0.85) !important;
+  color: #7B9586 !important;
+  backdrop-filter: blur(4px) !important;
+  font-size: 10px !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(28, 77, 60, 0.4) !important;
+  margin: 6px !important;
+}
+
+.leaflet-container .leaflet-control-attribution a {
+  color: #A6F16A !important;
+  text-decoration: none !important;
+}
+
+.leaflet-container .leaflet-control-attribution a:hover {
+  text-decoration: underline !important;
+}
+

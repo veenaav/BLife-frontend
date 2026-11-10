@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { AppSelect } from '@/components/ui/select'
 import {
@@ -9,27 +9,25 @@ import {
   Building2,
   CheckCircle2,
   Plus,
-  Compass,
-  Info,
   Trash2,
   Edit3,
   X,
   UserCheck,
+  BookOpen,
 } from 'lucide-react'
-import { useProjectDetails, type MockUserRole } from '@/features/projects'
+import { useProjectDetails, KERALA_DISTRICTS } from '@/features/projects'
 
 function WardsPage() {
   const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
+
   const {
     project,
     projectObservations,
     isLoading,
-    userRole,
-    handleRoleChange,
     canManageProject,
     isJoined,
     handleToggleJoin,
-    isAuthorizedContributor,
     handleRecordObservationClick,
     showEditModal,
     setShowEditModal,
@@ -39,6 +37,8 @@ function WardsPage() {
     setEditOrganization,
     editTargetRegion,
     setEditTargetRegion,
+    editDistrict,
+    setEditDistrict,
     editDescription,
     setEditDescription,
     editStatus,
@@ -69,37 +69,6 @@ function WardsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-5 sm:px-6 text-[#F0F5EF] space-y-5">
-      {/* Developer Testing: Role Switcher */}
-      <div className="rounded-2xl border border-[#1C4D3C] bg-[#0D2D22] px-3.5 py-2.5 text-xs text-[#B2C8BA] shadow-md shadow-[#061812]/50">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span className="text-[11px] font-bold text-[#A6F16A] tracking-wide">
-            🛠️ Mock Role:
-          </span>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {(
-              [
-                { id: 'admin', label: 'Admin' },
-                { id: 'project_expert', label: 'Project Expert' },
-                { id: 'field_worker', label: 'Field Worker' },
-              ] as const
-            ).map((role) => (
-              <button
-                key={role.id}
-                type="button"
-                onClick={() => handleRoleChange(role.id as MockUserRole)}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
-                  userRole === role.id
-                    ? 'bg-[#A6F16A] text-[#061812] font-bold shadow-xs'
-                    : 'bg-[#061812] text-[#B2C8BA] border border-[#1C4D3C] hover:border-[#A6F16A]/40'
-                }`}
-              >
-                {role.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-1.5 text-xs text-[#7B9586] flex-wrap">
         <Link to="/projects" className="inline-flex items-center gap-1 text-[#A6F16A] font-semibold hover:underline">
@@ -111,151 +80,107 @@ function WardsPage() {
           {project.name}
         </span>
         <span>/</span>
-        <span className="font-semibold text-white">Overview</span>
+        <span className="font-semibold text-white">Details</span>
       </nav>
 
-      {/* Project Context Header */}
+      {/* Project Details Container Card */}
       <div className="rounded-3xl border border-[#1C4D3C] bg-[#0D2D22] p-5 sm:p-6 shadow-xl shadow-[#061812]/50 text-[#F0F5EF] space-y-4">
-        {/* Top Badges */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="rounded-full bg-[#133D2F] border border-[#1C4D3C] px-3 py-0.5 text-xs font-semibold text-[#A6F16A]">
-            Project Hub
-          </span>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize border ${
-              project.status === 'completed'
-                ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-300'
-                : project.status === 'archived'
-                ? 'bg-zinc-800/60 border-zinc-700 text-zinc-300'
-                : 'bg-[#133D2F] border-[#1C4D3C] text-[#A6F16A]'
-            }`}
-          >
-            {project.status || 'Active'}
-          </span>
-          {isJoined ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300 uppercase">
-              <CheckCircle2 className="h-3 w-3 text-amber-300" />
-              Joined
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#061812] border border-[#1C4D3C] px-2.5 py-0.5 text-[10px] font-semibold text-[#7B9586] uppercase">
-              Not Joined
-            </span>
-          )}
-        </div>
+        {/* Project Header & Minimalist Controls */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1.5 flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white leading-snug">
+              {project.name}
+            </h1>
 
-        {/* Project Title & Metadata */}
-        <div className="space-y-1.5">
-          <h1 className="text-xl sm:text-2xl font-extrabold text-white leading-snug">
-            {project.name}
-          </h1>
-
-          {project.organization && (
-            <p className="flex items-center gap-1.5 text-xs sm:text-sm text-[#B2C8BA]">
-              <Building2 className="h-4 w-4 text-[#20D6A0] shrink-0" />
-              <span>{project.organization}</span>
-            </p>
-          )}
-
-          {project.targetRegion && (
-            <p className="flex items-center gap-1.5 text-xs sm:text-sm text-[#B2C8BA]">
-              <MapPin className="h-4 w-4 text-[#A6F16A] shrink-0" />
-              <span>{project.targetRegion}</span>
-            </p>
-          )}
-
-          {project.description && (
-            <div className="mt-3 rounded-2xl bg-[#061812] border border-[#1C4D3C] p-3.5 text-xs sm:text-sm text-[#B2C8BA] leading-relaxed">
-              <p className="font-bold text-[11px] text-[#A6F16A] uppercase tracking-wider mb-1">
-                Project Scope & Guidelines:
+            {project.organization && (
+              <p className="flex items-center gap-1.5 text-xs sm:text-sm text-[#B2C8BA]">
+                <Building2 className="h-4 w-4 text-[#20D6A0] shrink-0" />
+                <span>{project.organization}</span>
               </p>
-              <p className="whitespace-pre-line">{project.description}</p>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Project Summary Metrics */}
-        <div className="grid grid-cols-3 gap-2.5 pt-3 border-t border-[#1C4D3C] text-center">
-          <div className="rounded-2xl bg-[#061812] border border-[#1C4D3C] p-2.5">
-            <span className="block text-[10px] uppercase tracking-wider text-[#7B9586] font-semibold">Status</span>
-            <span className="text-xs sm:text-sm font-bold text-white capitalize">{project.status || 'Active'}</span>
-          </div>
-          <div className="rounded-2xl bg-[#061812] border border-[#1C4D3C] p-2.5">
-            <span className="block text-[10px] uppercase tracking-wider text-[#7B9586] font-semibold">Members</span>
-            <span className="text-xs sm:text-sm font-bold text-[#A6F16A]">
-              {isJoined ? '1 (You)' : '0'}
-            </span>
-          </div>
-          <div className="rounded-2xl bg-[#061812] border border-[#1C4D3C] p-2.5">
-            <span className="block text-[10px] uppercase tracking-wider text-[#7B9586] font-semibold">Observations</span>
-            <span className="text-xs sm:text-sm font-bold text-[#20D6A0]">
-              {projectObservations.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons Row */}
-        <div className="pt-3 border-t border-[#1C4D3C] flex items-center justify-between gap-2.5 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Primary Action: Direct New Observation */}
-            <Button
-              onClick={handleRecordObservationClick}
-              className={`inline-flex min-h-[42px] items-center gap-1.5 font-bold text-xs sm:text-sm rounded-xl active:scale-95 transition-all shadow-md ${
-                isAuthorizedContributor
-                  ? 'bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] text-[#061812] hover:opacity-95 shadow-[#20D6A0]/20'
-                  : 'bg-[#133D2F] border border-[#1C4D3C] hover:border-[#A6F16A]/50 text-[#A6F16A]'
-              }`}
-              title={isAuthorizedContributor ? 'Record observation' : 'Join project to record observation'}
-            >
-              <Plus className="h-4 w-4" />
-              <span>{isAuthorizedContributor ? 'Record Observation' : 'Join to Record'}</span>
-            </Button>
-
-            {/* Join / Leave Project toggle */}
-            <button
-              type="button"
-              onClick={handleToggleJoin}
-              className={`inline-flex min-h-[42px] items-center gap-1.5 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all active:scale-95 border cursor-pointer ${
-                isJoined
-                  ? 'bg-amber-950/60 text-amber-300 border-amber-800/60'
-                  : 'bg-[#061812] text-[#B2C8BA] border-[#1C4D3C] hover:border-[#A6F16A]/40'
-              }`}
-            >
-              {isJoined ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-amber-300" />
-                  <span>Joined</span>
-                </>
-              ) : (
-                <>
-                  <UserCheck className="h-4 w-4 text-[#A6F16A]" />
-                  <span>+ Join Project</span>
-                </>
-              )}
-            </button>
+            {(project.targetRegion || project.district) && (
+              <p className="flex items-center gap-1.5 text-xs sm:text-sm text-[#B2C8BA]">
+                <MapPin className="h-4 w-4 text-[#A6F16A] shrink-0" />
+                <span>{[project.targetRegion, project.district].filter(Boolean).join(', ')}</span>
+              </p>
+            )}
           </div>
 
-          {/* Administrative actions (Admin & Project Expert only) */}
+          {/* Minimalist Controls: Compact Icon-only Edit and Delete */}
           {canManageProject && (
-            <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+            <div className="flex items-center gap-2 shrink-0 pt-0.5">
               <button
                 type="button"
                 onClick={() => setShowEditModal(true)}
-                className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[#061812] border border-[#1C4D3C] hover:border-[#A6F16A]/50 text-[#B2C8BA] hover:text-white px-3.5 py-2 text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#061812] border border-[#1C4D3C] hover:border-[#A6F16A]/60 text-[#B2C8BA] hover:text-[#A6F16A] transition-all active:scale-95 cursor-pointer"
                 title="Edit Project"
+                aria-label="Edit Project"
               >
-                <Edit3 className="h-4 w-4 text-[#A6F16A]" />
-                <span>Edit</span>
+                <Edit3 className="h-4 w-4" />
               </button>
 
               <button
                 type="button"
                 onClick={handleDeleteProject}
-                className="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-rose-950/60 text-rose-300 border border-rose-800/60 hover:bg-rose-900/80 px-3.5 py-2 text-xs sm:text-sm font-semibold transition-all active:scale-95 cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#061812] border border-[#1C4D3C] hover:border-rose-800/80 text-[#B2C8BA] hover:text-rose-400 transition-all active:scale-95 cursor-pointer"
                 title="Delete Project"
+                aria-label="Delete Project"
               >
-                <Trash2 className="h-4 w-4 text-rose-400" />
-                <span>Delete</span>
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Description & Objectives */}
+        <div className="mt-2 rounded-2xl bg-[#061812] border border-[#1C4D3C] p-4 text-xs sm:text-sm text-[#F0F5EF] leading-relaxed shadow-inner space-y-1.5">
+          <div className="flex items-center gap-1.5 text-[#A6F16A] font-bold text-xs uppercase tracking-wider">
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>Project Details / Objectives</span>
+          </div>
+          {project.description && project.description.trim() ? (
+            <div className="whitespace-pre-wrap break-words leading-relaxed text-[#F0F5EF]">
+              {project.description}
+            </div>
+          ) : (
+            <p className="italic text-[#7B9586]">
+              No project description provided.
+            </p>
+          )}
+        </div>
+
+        {/* Action Button: Pre-Join ('Join Project') / Post-Join ('Start Observation') */}
+        <div className="pt-3 border-t border-[#1C4D3C] flex items-center justify-between gap-3 flex-wrap">
+          {!isJoined ? (
+            <Button
+              type="button"
+              onClick={handleToggleJoin}
+              className="w-full sm:w-auto min-h-[44px] px-6 inline-flex items-center justify-center gap-2 font-bold text-sm rounded-xl bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] text-[#061812] hover:opacity-95 shadow-md shadow-[#20D6A0]/20 active:scale-95 transition-all cursor-pointer"
+            >
+              <UserCheck className="h-4 w-4" />
+              <span>Join Project</span>
+            </Button>
+          ) : (
+            <div className="flex items-center justify-between w-full gap-3 flex-wrap">
+              <Button
+                type="button"
+                onClick={handleRecordObservationClick}
+                className="w-full sm:w-auto min-h-[44px] px-6 inline-flex items-center justify-center gap-2 font-bold text-sm rounded-xl bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] text-[#061812] hover:opacity-95 shadow-md shadow-[#20D6A0]/20 active:scale-95 transition-all cursor-pointer"
+                title="Record observation for this project"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Start Observation</span>
+              </Button>
+
+              <button
+                type="button"
+                onClick={handleToggleJoin}
+                title="Click to leave project"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-[#7B9586] hover:text-rose-400 bg-[#061812] border border-[#1C4D3C] hover:border-rose-900 transition-colors cursor-pointer"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#A6F16A]" />
+                <span>Joined</span>
               </button>
             </div>
           )}
@@ -302,25 +227,27 @@ function WardsPage() {
                   type="text"
                   required
                   value={editName}
+                  placeholder="Project Name"
                   onChange={(e) => setEditName(e.target.value)}
                   className="mt-1.5 w-full min-h-[44px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-3.5 py-2.5 text-base text-[#F0F5EF] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="editOrg" className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]">
-                    Organization
-                  </label>
-                  <input
-                    id="editOrg"
-                    type="text"
-                    value={editOrganization}
-                    onChange={(e) => setEditOrganization(e.target.value)}
-                    className="mt-1.5 w-full min-h-[44px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-3.5 py-2.5 text-sm text-[#F0F5EF] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
-                  />
-                </div>
+              <div>
+                <label htmlFor="editOrg" className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]">
+                  Organization / Institution
+                </label>
+                <input
+                  id="editOrg"
+                  type="text"
+                  value={editOrganization}
+                  onChange={(e) => setEditOrganization(e.target.value)}
+                  placeholder="Organization / Institution"
+                  className="mt-1.5 w-full min-h-[44px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-3.5 py-2.5 text-sm text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
+                />
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="editRegion" className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]">
                     Target Region
@@ -330,8 +257,24 @@ function WardsPage() {
                     type="text"
                     value={editTargetRegion}
                     onChange={(e) => setEditTargetRegion(e.target.value)}
-                    className="mt-1.5 w-full min-h-[44px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-3.5 py-2.5 text-sm text-[#F0F5EF] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
+                    placeholder="Target Region"
+                    className="mt-1.5 w-full min-h-[44px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-3.5 py-2.5 text-sm text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="editDistrict" className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]">
+                    District
+                  </label>
+                  <div className="mt-1.5">
+                    <AppSelect
+                      id="editDistrict"
+                      value={editDistrict}
+                      onChange={(val) => setEditDistrict(val)}
+                      placeholder="Select District..."
+                      options={KERALA_DISTRICTS.map((d) => ({ value: d, label: d }))}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -353,14 +296,15 @@ function WardsPage() {
 
               <div>
                 <label htmlFor="editDesc" className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]">
-                  Description & Scope
+                  Description &amp; Objectives
                 </label>
                 <textarea
                   id="editDesc"
-                  rows={3}
+                  rows={4}
                   value={editDescription}
+                  placeholder="Description & Objectives"
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-[#1C4D3C] bg-[#061812] px-3.5 py-2.5 text-sm text-[#F0F5EF] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
+                  className="mt-1.5 w-full rounded-xl border border-[#1C4D3C] bg-[#061812] px-3.5 py-2.5 text-sm text-[#F0F5EF] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] resize-y min-h-[100px] leading-relaxed whitespace-pre-wrap"
                 />
               </div>
 
@@ -386,113 +330,88 @@ function WardsPage() {
         </div>
       )}
 
-      {/* Ward Boundary Information */}
-      <div className="rounded-3xl border border-[#1C4D3C] bg-[#0D2D22] p-5 sm:p-6 shadow-xl shadow-[#061812]/50 text-[#F0F5EF]">
-        <div className="flex items-center justify-between border-b border-[#1C4D3C] pb-3">
-          <div className="flex items-center gap-2">
-            <Compass className="h-5 w-5 text-[#A6F16A]" />
-            <h2 className="text-base sm:text-lg font-bold tracking-wide uppercase text-white">
-              Automatic GPS Ward Identification
-            </h2>
+      {/* Project Observations Section (Post-Join State) */}
+      {isJoined && (
+        <div className="border-t border-[#1C4D3C] pt-5 space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Leaf className="h-4.5 w-4.5 text-[#A6F16A]" />
+              <h2 className="text-lg sm:text-xl font-bold text-white">
+                Project Observations
+              </h2>
+            </div>
+            <span className="text-xs text-[#7B9586]">
+              {projectObservations.length} {projectObservations.length === 1 ? 'record' : 'records'}
+            </span>
           </div>
-          <span className="rounded-full bg-[#133D2F] border border-[#1C4D3C] px-2.5 py-0.5 text-[10px] font-semibold text-[#A6F16A] uppercase tracking-wider">
-            100 Corporation Wards
-          </span>
-        </div>
 
-        <div className="mt-3.5 rounded-2xl bg-[#061812] p-4 border border-[#1C4D3C] text-xs sm:text-sm text-[#B2C8BA] space-y-2">
-          <div className="flex items-start gap-2.5">
-            <Info className="h-4 w-4 text-[#20D6A0] shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-white">
-                Thiruvananthapuram Municipal Corporation Boundary Matching
-              </p>
-              <p className="text-xs leading-relaxed text-[#7B9586]">
-                Wards are not manually created. When field workers record observations outdoors, the app
-                automatically matches the device GPS coordinates against official municipal boundary polygon data.
+          {projectObservations.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#1C4D3C] bg-[#0D2D22] p-6 text-center text-xs text-[#7B9586] shadow-sm">
+              <p>No observations recorded in this project yet.</p>
+              <p className="mt-1 text-[11px] text-[#7B9586]">
+                Tap &quot;Start Observation&quot; above to log species directly in the field.
               </p>
             </div>
-          </div>
-        </div>
-      </div>
+          ) : (
+            <div className="space-y-3">
+              {projectObservations.map((obs) => {
+                const photoBlob = obs.photos?.[0] || obs.photo
+                const hasPhoto = photoBlob instanceof Blob
+                const previewUrl = hasPhoto ? URL.createObjectURL(photoBlob) : null
 
-      {/* Project Observations Section */}
-      <div className="border-t border-[#1C4D3C] pt-6 space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Leaf className="h-4.5 w-4.5 text-[#A6F16A]" />
-            <h2 className="text-lg sm:text-xl font-bold text-white">
-              Project Observations
-            </h2>
-          </div>
-          <span className="text-xs text-[#7B9586]">
-            {projectObservations.length} {projectObservations.length === 1 ? 'record' : 'records'}
-          </span>
-        </div>
-
-        {projectObservations.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#1C4D3C] bg-[#0D2D22] p-6 text-center text-xs text-[#7B9586] shadow-sm">
-            <p>No observations recorded in this project yet.</p>
-            <p className="mt-1 text-[11px] text-[#7B9586]">
-              Tap &quot;Record Observation&quot; above to log species directly in the field.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {projectObservations.map((obs) => {
-              const photoBlob = obs.photos?.[0] || obs.photo
-              const hasPhoto = photoBlob instanceof Blob
-              const previewUrl = hasPhoto ? URL.createObjectURL(photoBlob) : null
-
-              return (
-                <div
-                  key={obs.id}
-                  className="rounded-2xl border border-[#1C4D3C] bg-[#0D2D22] p-3.5 flex items-center gap-3 text-[#F0F5EF] shadow-md hover:border-[#A6F16A]/40 transition-colors"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#1C4D3C] bg-[#061812]">
-                    {previewUrl ? (
-                      <img
-                        src={previewUrl}
-                        alt={obs.speciesName || 'Species'}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <Leaf className="h-5 w-5 text-[#1C4D3C]" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-[#133D2F] px-2 py-0.5 text-[10px] font-semibold text-[#A6F16A] border border-[#1C4D3C] uppercase">
-                        {obs.identificationStatus || 'Record'}
-                      </span>
-                      {obs.speciesGroup && (
-                        <span className="text-xs text-[#7B9586] truncate">
-                          • {obs.speciesGroup}
-                        </span>
+                return (
+                  <div
+                    key={obs.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => obs.id && navigate(`/observations/${obs.id}`)}
+                    className="rounded-2xl border border-[#1C4D3C] bg-[#0D2D22] p-3.5 flex items-center gap-3 text-[#F0F5EF] shadow-md hover:border-[#A6F16A]/40 transition-colors cursor-pointer"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#1C4D3C] bg-[#061812]">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt={obs.speciesName || 'Species'}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Leaf className="h-5 w-5 text-[#1C4D3C]" />
                       )}
                     </div>
-                    <h3 className="text-base font-bold text-white truncate mt-0.5">
-                      {obs.speciesName}
-                    </h3>
-                    {obs.localName && (
-                      <p className="text-xs text-[#B2C8BA] truncate">{obs.localName}</p>
-                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-[#133D2F] px-2 py-0.5 text-[10px] font-semibold text-[#A6F16A] border border-[#1C4D3C] uppercase">
+                          {obs.identificationStatus || 'Record'}
+                        </span>
+                        {obs.speciesGroup && (
+                          <span className="text-xs text-[#7B9586] truncate">
+                            • {obs.speciesGroup}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-bold text-white truncate mt-0.5">
+                        {obs.speciesName}
+                      </h3>
+                      {obs.localName && (
+                        <p className="text-xs text-[#B2C8BA] truncate">{obs.localName}</p>
+                      )}
+                    </div>
+                    <div className="text-right text-xs text-[#7B9586] shrink-0">
+                      <span className="flex items-center gap-1 font-medium text-[#B2C8BA]">
+                        <Calendar className="h-3 w-3 text-[#20D6A0]" />
+                        {new Date(obs.recordedAt || obs.createdAt || 0).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right text-xs text-[#7B9586] shrink-0">
-                    <span className="flex items-center gap-1 font-medium text-[#B2C8BA]">
-                      <Calendar className="h-3 w-3 text-[#20D6A0]" />
-                      {new Date(obs.recordedAt || obs.createdAt || 0).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

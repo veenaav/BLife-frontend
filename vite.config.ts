@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_PROXY_TARGET || env.VITE_API_URL || 'http://localhost:3000'
 
   return {
-    base: '/Vasudha_App/',
+    base: '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

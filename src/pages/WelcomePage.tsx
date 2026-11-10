@@ -20,22 +20,26 @@ export default function WelcomePage() {
 
         {/* Text Container overlay: Blends smoothly with deep forest gradient and elevated upward toward the photo */}
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#061812] via-[#061812]/95 to-transparent pt-20 sm:pt-28 pb-7 sm:pb-9 md:pb-10 px-4 sm:px-6 z-10 flex flex-col items-start text-left space-y-2.5 sm:space-y-3">
-          {/* Text-Only Header: Left-aligned 'Welcome to B-LIFFE' and Subtitle */}
+          {/* Text-Only Header: Left-aligned 'Welcome to BLife' and Subtitle */}
           <div className="flex flex-col items-start text-left space-y-1 sm:space-y-1.5 w-full">
             <h1 className="text-[26px] sm:text-3xl md:text-[34px] font-extrabold tracking-tight text-white leading-tight font-modern flex items-baseline gap-2 flex-wrap">
               <span>Welcome to</span>
-              <span className="font-sans font-extrabold tracking-[0.14em] uppercase text-[#E4F6EC] drop-shadow-[0_0_12px_rgba(32,214,160,0.22)]">
-                B-LIFFE
+              <span className="font-sans font-extrabold tracking-[0.08em] text-[#E4F6EC] drop-shadow-[0_0_12px_rgba(32,214,160,0.22)]">
+                BLife
               </span>
             </h1>
-            <p className="text-[13px] sm:text-[14.5px] md:text-base font-semibold text-[#A6F16A] tracking-tight sm:tracking-normal leading-snug font-modern whitespace-nowrap overflow-hidden text-ellipsis sm:overflow-visible">
-              Bharat Local Informatics • Flora, Fauna &amp; Ecosystems
+            <p className="text-[13.5px] sm:text-[15px] md:text-base font-semibold text-[#A6F16A] tracking-normal leading-snug font-modern">
+              <span>Bharat Local Informatics</span>
+              <span className="mx-1.5 font-black text-base sm:text-lg leading-none inline-block align-middle select-none text-[#A6F16A]">
+                •
+              </span>
+              <span>Flora, Fauna &amp; Ecosystems</span>
             </p>
           </div>
 
           {/* Main description paragraph with refined letter-spacing, gentle weight, and improved line height */}
           <p className="text-[13px] sm:text-sm md:text-[15px] text-[#B2C8BA] leading-relaxed sm:leading-[1.65] font-normal tracking-[0.012em] antialiased drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] font-modern text-left">
-            Your digital field companion for capturing India’s biodiversity. Record, observe, and protect ecosystems anywhere.
+            Discover the richness of nature around you. Document plants, animals and ecosystems, and contribute to a growing record of India&apos;s biodiversity.
           </p>
         </div>
       </div>

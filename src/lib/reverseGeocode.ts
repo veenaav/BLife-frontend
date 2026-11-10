@@ -1,5 +1,5 @@
 /**
- * Reverse Geocoding Service for B-Liffe
+ * Reverse Geocoding Service for BLife
  *
  * Automatically resolves coordinates into human-readable English local addresses
  * (suburb/village/town/city + district, e.g. "Pulloor, Thrissur") via OpenStreetMap Nominatim API,
@@ -158,7 +158,7 @@ export function parseNominatimAddress(data: any): ReverseGeocodeResult {
  * Client-Side Reverse Geocoding via OpenStreetMap Nominatim.
  *
  * Requests English results using 'accept-language=en' parameter and 'Accept-Language': 'en' header.
- * Includes descriptive 'User-Agent': 'B-Liffe-App'.
+ * Includes descriptive 'User-Agent': 'BLife-App'.
  * Returns ReverseGeocodeResult in clean English format or null on error / offline.
  */
 export async function reverseGeocodeCoordinates(
@@ -185,7 +185,7 @@ export async function reverseGeocodeCoordinates(
       headers: {
         Accept: 'application/json',
         'Accept-Language': 'en',
-        'User-Agent': 'B-Liffe-App',
+        'User-Agent': 'BLife-App',
       },
       signal: AbortSignal.timeout(6000),
     })

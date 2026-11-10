@@ -29,15 +29,15 @@ export default function SplashScreen() {
           <div className="flex items-center justify-center">
             <img
               src={`${import.meta.env.BASE_URL}splash-logo-opt2.png`}
-              alt="B-Liffe Digital Butterfly Logo"
+              alt="BLife Digital Butterfly Logo"
               className="w-[145px] h-[138px] sm:w-[175px] sm:h-[166px] md:w-[190px] md:h-[180px] max-h-[28vh] object-contain select-none transition-transform duration-500 hover:scale-[1.03] filter drop-shadow-[0_0_20px_rgba(32,214,160,0.28)] drop-shadow-[0_12px_24px_rgba(0,0,0,0.75)]"
             />
           </div>
 
-          {/* "B-LIFFE" Wordmark: Tighter spacing & soft pale mint off-white blend */}
+          {/* "BLife" Wordmark: Tighter spacing & soft pale mint off-white blend */}
           <h1 className="mt-1 sm:mt-1.5 select-none">
-            <span className="text-[24px] sm:text-[28px] md:text-[30px] font-sans font-extrabold tracking-[0.14em] uppercase text-[#E4F6EC] drop-shadow-[0_0_12px_rgba(32,214,160,0.22)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-              B-LIFFE
+            <span className="text-[24px] sm:text-[28px] md:text-[30px] font-sans font-extrabold tracking-[0.08em] text-[#E4F6EC] drop-shadow-[0_0_12px_rgba(32,214,160,0.22)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
+              BLife
             </span>
           </h1>
         </div>

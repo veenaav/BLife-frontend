@@ -121,25 +121,20 @@ export default function LoginPage() {
           <div className="space-y-4 sm:space-y-6 flex-1 flex flex-col justify-center">
             {/* Email Field */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="login-email"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#B2C8BA]"
-              >
-                Email Address
-              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#7B9586]">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
                   id="login-email"
+                  aria-label="Enter your email address"
                   type="email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value)
                     if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
                   }}
-                  placeholder="Email address"
+                  placeholder="Enter your email address"
                   className={`w-full pl-10 pr-4 py-3 rounded-2xl bg-[#061812] border ${
                     errors.email ? 'border-rose-500' : 'border-[#1C4D3C]'
                   } text-sm text-[#F0F5EF] placeholder-[#7B9586] focus:outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] transition-all`}
@@ -155,25 +150,20 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="login-password"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#B2C8BA]"
-              >
-                Password
-              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#7B9586]">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
                   id="login-password"
+                  aria-label="Enter password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value)
                     if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
                   }}
-                  placeholder="Password"
+                  placeholder="Enter password"
                   className={`w-full pl-10 pr-11 py-3 rounded-2xl bg-[#061812] border ${
                     errors.password ? 'border-rose-500' : 'border-[#1C4D3C]'
                   } text-sm text-[#F0F5EF] placeholder-[#7B9586] focus:outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] transition-all`}

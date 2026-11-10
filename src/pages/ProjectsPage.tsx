@@ -2,18 +2,16 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   Plus,
-  ArrowRight,
   FolderPlus,
   MapPin,
   Building2,
   FolderGit2,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Trash2,
   X,
 } from 'lucide-react'
-import { useProjects } from '@/features/projects'
+import { useProjects, KERALA_DISTRICTS } from '@/features/projects'
+import { AppSelect } from '@/components/ui/select'
 
 function ProjectsPage() {
   const navigate = useNavigate()
@@ -22,8 +20,6 @@ function ProjectsPage() {
     joinedIds,
     activeTab,
     setActiveTab,
-    expandedProjectId,
-    setExpandedProjectId,
     observationCounts,
     showAddForm,
     setShowAddForm,
@@ -33,6 +29,8 @@ function ProjectsPage() {
     setOrganization,
     targetRegion,
     setTargetRegion,
+    district,
+    setDistrict,
     description,
     setDescription,
     isSubmitting,
@@ -120,44 +118,63 @@ function ProjectsPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Palayam Ward Biodiversity Survey"
+                  placeholder="Project Name"
                   className="mt-1.5 w-full min-h-[46px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-2.5 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
                 />
               </div>
 
+              <div>
+                <label
+                  htmlFor="org"
+                  className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]"
+                >
+                  Organization / Institution
+                </label>
+                <input
+                  id="org"
+                  type="text"
+                  value={organization}
+                  onChange={(e) => setOrganization(e.target.value)}
+                  placeholder="Organization / Institution"
+                  className="mt-1.5 w-full min-h-[46px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-2.5 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
+                />
+              </div>
+
+              {/* Split into Target Region (text) and District (select with 14 Kerala districts) */}
               <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                 <div>
                   <label
-                    htmlFor="org"
+                    htmlFor="targetRegion"
                     className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]"
                   >
-                    Organization / Institution (optional)
+                    Target Region
                   </label>
                   <input
-                    id="org"
+                    id="targetRegion"
                     type="text"
-                    value={organization}
-                    onChange={(e) => setOrganization(e.target.value)}
-                    placeholder="e.g. KSBB, College Botany Dept"
+                    value={targetRegion}
+                    onChange={(e) => setTargetRegion(e.target.value)}
+                    placeholder="Target Region"
                     className="mt-1.5 w-full min-h-[46px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-2.5 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
                   />
                 </div>
 
                 <div>
                   <label
-                    htmlFor="region"
+                    htmlFor="district"
                     className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]"
                   >
-                    Target Region / District (optional)
+                    District
                   </label>
-                  <input
-                    id="region"
-                    type="text"
-                    value={targetRegion}
-                    onChange={(e) => setTargetRegion(e.target.value)}
-                    placeholder="e.g. Thiruvananthapuram District"
-                    className="mt-1.5 w-full min-h-[46px] rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-2.5 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
-                  />
+                  <div className="mt-1.5">
+                    <AppSelect
+                      id="district"
+                      value={district}
+                      onChange={(val) => setDistrict(val)}
+                      placeholder="Select District..."
+                      options={KERALA_DISTRICTS.map((d) => ({ value: d, label: d }))}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -166,16 +183,19 @@ function ProjectsPage() {
                   htmlFor="projDesc"
                   className="block text-xs font-semibold tracking-wider uppercase text-[#B2C8BA]"
                 >
-                  Description (optional)
+                  Description &amp; Objectives
                 </label>
                 <textarea
                   id="projDesc"
-                  rows={3}
+                  rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Add brief description..."
-                  className="mt-1.5 w-full rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-2.5 text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A]"
+                  placeholder="Description &amp; Objectives"
+                  className="mt-1.5 w-full rounded-xl border border-[#1C4D3C] bg-[#061812] px-4 py-2.5 text-sm sm:text-base text-[#F0F5EF] placeholder-[#7B9586] outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] resize-y min-h-[100px] leading-relaxed whitespace-pre-wrap"
                 />
+                <p className="mt-1 text-[11px] text-[#7B9586]">
+                  Accepts multi-line text and paragraph breaks. Saved in full and displayed prominently on the project details page.
+                </p>
               </div>
             </div>
 
@@ -255,14 +275,15 @@ function ProjectsPage() {
             ) : displayedProjects.length > 0 ? (
               displayedProjects.map((proj) => {
                 const isJoined = joinedIds.includes(proj.id)
-                const isExpanded = expandedProjectId === proj.id
 
                 return (
                   <div
                     key={proj.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/projects/${proj.id}/wards`)}
+                    onClick={() =>
+                      navigate(`/projects/${proj.id}/wards`)
+                    }
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
@@ -277,21 +298,25 @@ function ProjectsPage() {
                           <h2 className="text-xl font-bold text-white group-hover:text-[#A6F16A] transition-colors truncate">
                             {proj.name}
                           </h2>
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize border ${
-                              proj.status === 'completed'
-                                ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-300'
-                                : proj.status === 'archived'
-                                ? 'bg-zinc-800/60 border-zinc-700 text-zinc-300'
-                                : 'bg-[#133D2F] border-[#1C4D3C] text-[#A6F16A]'
-                            }`}
-                          >
-                            {proj.status || 'Active'}
-                          </span>
+                          {(!proj.status || proj.status === 'active') ? (
+                            <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold border bg-[#133D2F] border-[#1C4D3C] text-[#A6F16A]">
+                              Active
+                            </span>
+                          ) : (
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize border ${
+                                proj.status === 'completed'
+                                  ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-300'
+                                  : 'bg-zinc-800/60 border-zinc-700 text-zinc-300'
+                              }`}
+                            >
+                              {proj.status}
+                            </span>
+                          )}
                           {isJoined && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 text-[10px] font-semibold text-amber-300 uppercase">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300 uppercase tracking-wide">
                               <CheckCircle2 className="h-3 w-3 text-amber-300" />
-                              Joined
+                              JOINED
                             </span>
                           )}
                         </div>
@@ -303,39 +328,13 @@ function ProjectsPage() {
                           </p>
                         )}
 
-                        {proj.targetRegion && (
+                        {(proj.targetRegion || proj.district) && (
                           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-[#B2C8BA]">
                             <MapPin className="h-4 w-4 text-[#A6F16A] shrink-0" />
-                            <span className="truncate">{proj.targetRegion}</span>
+                            <span className="truncate">
+                              {[proj.targetRegion, proj.district].filter(Boolean).join(', ')}
+                            </span>
                           </p>
-                        )}
-
-                        {proj.description && (
-                          <div className="mt-2 text-xs text-[#7B9586]">
-                            <p className={isExpanded ? 'leading-relaxed' : 'line-clamp-2 leading-relaxed'}>
-                              {proj.description}
-                            </p>
-                            {proj.description.length > 80 && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setExpandedProjectId(isExpanded ? null : proj.id)
-                                }}
-                                onKeyDown={(e) => {
-                                  e.stopPropagation()
-                                }}
-                                className="mt-1 inline-flex items-center gap-0.5 text-[11px] text-[#A6F16A] hover:underline cursor-pointer"
-                              >
-                                <span>{isExpanded ? 'Show less' : 'Details'}</span>
-                                {isExpanded ? (
-                                  <ChevronUp className="h-3 w-3" />
-                                ) : (
-                                  <ChevronDown className="h-3 w-3" />
-                                )}
-                              </button>
-                            )}
-                          </div>
                         )}
                       </div>
 
@@ -358,11 +357,6 @@ function ProjectsPage() {
                           {observationCounts[proj.id] ?? 0}
                         </strong>{' '}
                         {observationCounts[proj.id] === 1 ? 'observation' : 'observations'}
-                      </span>
-
-                      <span className="inline-flex items-center gap-1 text-xs text-[#A6F16A] group-hover:translate-x-0.5 transition-transform font-semibold">
-                        <span>View wards</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
                   </div>

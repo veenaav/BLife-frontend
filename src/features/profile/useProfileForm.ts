@@ -6,6 +6,7 @@ import type { AvatarPresetId, AvatarType } from '@/lib/profileTypes'
 export interface ProfileFormState {
   fullName: string
   displayName: string
+  aboutMe: string
   bio: string
   avatarType: AvatarType
   avatarPresetId: AvatarPresetId
@@ -24,7 +25,8 @@ export function useProfileForm() {
   const [formData, setFormData] = useState<ProfileFormState>({
     fullName: profile.fullName,
     displayName: profile.displayName,
-    bio: profile.bio,
+    aboutMe: profile.aboutMe || profile.bio || '',
+    bio: profile.bio || '',
     avatarType: profile.avatarType,
     avatarPresetId: profile.avatarPresetId,
     avatarCustomUrl: profile.avatarCustomUrl || null,
@@ -42,7 +44,7 @@ export function useProfileForm() {
   const isDirty =
     formData.fullName !== profile.fullName ||
     formData.displayName !== profile.displayName ||
-    formData.bio !== profile.bio ||
+    formData.aboutMe !== (profile.aboutMe || profile.bio || '') ||
     formData.avatarType !== profile.avatarType ||
     formData.avatarPresetId !== profile.avatarPresetId ||
     formData.avatarCustomUrl !== profile.avatarCustomUrl
@@ -52,7 +54,8 @@ export function useProfileForm() {
     setFormData({
       fullName: profile.fullName,
       displayName: profile.displayName,
-      bio: profile.bio,
+      aboutMe: profile.aboutMe || profile.bio || '',
+      bio: profile.bio || '',
       avatarType: profile.avatarType,
       avatarPresetId: profile.avatarPresetId,
       avatarCustomUrl: profile.avatarCustomUrl || null,
@@ -77,7 +80,8 @@ export function useProfileForm() {
     setFormData({
       fullName: profile.fullName,
       displayName: profile.displayName,
-      bio: profile.bio,
+      aboutMe: profile.aboutMe || profile.bio || '',
+      bio: profile.bio || '',
       avatarType: profile.avatarType,
       avatarPresetId: profile.avatarPresetId,
       avatarCustomUrl: profile.avatarCustomUrl || null,
@@ -143,7 +147,8 @@ export function useProfileForm() {
       await updateProfile({
         fullName: formData.fullName,
         displayName: formData.displayName,
-        bio: formData.bio,
+        aboutMe: formData.aboutMe,
+        bio: formData.aboutMe,
         avatarType: formData.avatarType,
         avatarPresetId: formData.avatarPresetId,
         avatarCustomUrl: formData.avatarCustomUrl,

@@ -101,14 +101,14 @@ export default function BrandLockup({
       <div className={`flex items-center ${gaps[size]} select-none ${className}`}>
         <img
           src={logoSrc}
-          alt="B-LIFFE Logo"
+          alt="BLife Logo"
           className={`${iconSizes[size]} object-contain shrink-0 filter ${horizontalIconShadow}`}
         />
         <div className="flex flex-col justify-center min-w-0">
           <span
-            className={`${textSizes[size]} font-sans font-extrabold tracking-[0.14em] uppercase ${wordmarkClassName || wordmarkColor} leading-none`}
+            className={`${textSizes[size]} font-sans font-extrabold tracking-[0.08em] ${wordmarkClassName || wordmarkColor} leading-none`}
           >
-            B-LIFFE
+            BLife
           </span>
           {subtitle && (
             <p
@@ -144,7 +144,7 @@ export default function BrandLockup({
       <div className="flex items-center justify-center">
         <img
           src={logoSrc}
-          alt="B-LIFFE Logo"
+          alt="BLife Logo"
           className={`${iconSizes[size]} object-contain select-none filter ${
             isWhite
               ? 'drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]'
@@ -156,9 +156,9 @@ export default function BrandLockup({
       </div>
       <div className={margins[size]}>
         <span
-          className={`${textSizes[size]} font-sans font-extrabold tracking-[0.14em] uppercase ${wordmarkClassName || wordmarkColor}`}
+          className={`${textSizes[size]} font-sans font-extrabold tracking-[0.08em] ${wordmarkClassName || wordmarkColor}`}
         >
-          B-LIFFE
+          BLife
         </span>
       </div>
       {subtitle && (

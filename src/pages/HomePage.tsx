@@ -3,21 +3,21 @@ import { PlusCircle, ArrowRight, FolderGit2, BookOpen } from 'lucide-react'
 import { useProfile } from '@/context/ProfileContext'
 
 export default function HomePage() {
-  const { profile, isGuest } = useProfile()
+  const { profile, isLoggedIn } = useProfile()
 
   // Read name dynamically from the frontend profile state.
-  // Falls back to 'Welcome to B-Liffe!' if no name is available.
+  // Falls back to 'Welcome to BLife!' if no name is available.
   const greetingName =
     profile?.displayName?.trim() ||
     (profile?.fullName?.trim() ? profile.fullName.trim().split(/\s+/)[0] : '')
 
-  const headingText = isGuest
+  const headingText = !isLoggedIn
     ? 'Hello, there'
     : greetingName
       ? `Hi, ${greetingName}!`
-      : 'Welcome to B-Liffe!'
+      : 'Welcome to BLife!'
 
-  const subtitleText = isGuest
+  const subtitleText = !isLoggedIn
     ? 'Look closer. Nature has stories to tell.'
     : 'Record observations. Support conservation.'
 

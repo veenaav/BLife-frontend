@@ -4,10 +4,10 @@ import { useProfile } from '@/context/ProfileContext'
 import AvatarDisplay from '@/components/AvatarDisplay'
 
 export default function TopBar() {
-  const { profile, isGuest } = useProfile()
+  const { profile, isLoggedIn } = useProfile()
 
   // Extract logged-in user's first name, or 'Guest' for guest users
-  const firstName = isGuest
+  const firstName = !isLoggedIn
     ? 'Guest'
     : (profile?.displayName?.trim() ? profile.displayName.trim().split(/\s+/)[0] : '') ||
       (profile?.fullName?.trim() ? profile.fullName.trim().split(/\s+/)[0] : '') ||
@@ -16,11 +16,11 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-20 border-b border-[#1C4D3C] bg-[#08221A]/95 backdrop-blur-md">
       <div className="flex w-full items-center justify-between px-3.5 py-2 sm:px-6 sm:py-2.5 gap-3">
-        {/* Left-aligned Branding Group: Unified Compact Logo + B-LIFFE Lockup */}
+        {/* Left-aligned Branding Group: Unified Compact Logo + BLife Lockup */}
         <Link
           to="/home"
           className="flex items-center text-left group min-w-0"
-          title="B-Liffe - Bharat Local Informatics for Flora, Fauna, and Ecosystems"
+          title="BLife - Bharat Local Informatics for Flora, Fauna, and Ecosystems"
         >
           <BrandLockup
             layout="horizontal"
@@ -39,9 +39,9 @@ export default function TopBar() {
             aria-label={`My Profile: ${firstName}`}
           >
             <AvatarDisplay
-              avatarType={profile.avatarType}
-              avatarPresetId={profile.avatarPresetId}
-              avatarCustomUrl={profile.avatarCustomUrl}
+              avatarType={!isLoggedIn ? 'preset' : profile.avatarType}
+              avatarPresetId={!isLoggedIn ? 'user' : profile.avatarPresetId}
+              avatarCustomUrl={!isLoggedIn ? null : profile.avatarCustomUrl}
               size="sm"
               className="transition-all duration-200 group-hover:scale-105 group-hover:border-[#A6F16A]"
             />
