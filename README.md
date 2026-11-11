@@ -1,4 +1,4 @@
-# 🌿 B-Liffe
+# 🌿 BLife
 
 An offline-first progressive web application for biodiversity field surveys, ecological monitoring, and specimen data collection in zero-connectivity environments.
 
