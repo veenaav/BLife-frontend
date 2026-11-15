@@ -17,8 +17,10 @@ import {
 import BrandName from '@/components/BrandName'
 import BrandLockup from '@/components/BrandLockup'
 import { apiLogin } from '@/lib/profileService'
+import { useProfile } from '@/context/ProfileContext'
 
 export default function LoginPage() {
+  const { setGuestSession } = useProfile()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -61,6 +63,7 @@ export default function LoginPage() {
     setIsSubmitting(true)
     try {
       await apiLogin(email, password)
+      setGuestSession(false)
       navigate('/home')
     } catch (err: any) {
       setServerError(err.message || 'Login failed. Please check credentials or backend connection.')
@@ -118,25 +121,20 @@ export default function LoginPage() {
           <div className="space-y-4 sm:space-y-6 flex-1 flex flex-col justify-center">
             {/* Email Field */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="login-email"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#B2C8BA]"
-              >
-                Email Address
-              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#7B9586]">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
                   id="login-email"
+                  aria-label="Enter your email address"
                   type="email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value)
                     if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
                   }}
-                  placeholder="Email address"
+                  placeholder="Enter your email address"
                   className={`w-full pl-10 pr-4 py-3 rounded-2xl bg-[#061812] border ${
                     errors.email ? 'border-rose-500' : 'border-[#1C4D3C]'
                   } text-sm text-[#F0F5EF] placeholder-[#7B9586] focus:outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] transition-all`}
@@ -152,25 +150,20 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="login-password"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#B2C8BA]"
-              >
-                Password
-              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#7B9586]">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
                   id="login-password"
+                  aria-label="Enter password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value)
                     if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
                   }}
-                  placeholder="Password"
+                  placeholder="Enter password"
                   className={`w-full pl-10 pr-11 py-3 rounded-2xl bg-[#061812] border ${
                     errors.password ? 'border-rose-500' : 'border-[#1C4D3C]'
                   } text-sm text-[#F0F5EF] placeholder-[#7B9586] focus:outline-none focus:border-[#A6F16A] focus:ring-1 focus:ring-[#A6F16A] transition-all`}
@@ -230,7 +223,10 @@ export default function LoginPage() {
             {/* Continue as Guest Button (Consistent with Welcome Screen) */}
             <button
               type="button"
-              onClick={() => navigate('/home')}
+              onClick={() => {
+                setGuestSession(true)
+                navigate('/home')
+              }}
               className="w-full flex h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] items-center justify-center gap-2 px-4 rounded-xl sm:rounded-2xl border border-[#1C4D3C] bg-[#061812] text-[#A6F16A] hover:bg-[#133D2F] hover:text-[#F0F5EF] text-xs sm:text-sm md:text-base font-extrabold shadow-md active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
             >
               <Compass className="w-4.5 h-4.5 text-[#A6F16A] shrink-0" />
@@ -296,7 +292,10 @@ export default function LoginPage() {
             <div className="flex flex-col gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => navigate('/home')}
+                onClick={() => {
+                setGuestSession(true)
+                navigate('/home')
+              }}
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-[#A6F16A] to-[#20D6A0] text-[#061812] font-bold text-xs shadow-md transition-all active:scale-[0.98]"
               >
                 <span>Continue to Home Dashboard (Offline Field Mode)</span>

@@ -26,7 +26,7 @@ jobs:
       - name: Build project
         env:
           VITE_BASE_URL: '/'
-          # Leave empty to use same-origin relative '/api' via CloudFront reverse proxy (fixes Mixed Content)
+          # Relative '/api' via CloudFront reverse proxy (fixes Mixed Content)
           VITE_API_URL: ${{ secrets.VITE_API_URL || '' }}
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: npm run build
@@ -35,15 +35,25 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY || secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
 
       - name: Deploy build artifacts to S3
         run: |
-          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
+          # Sanitize bucket name: strips any accidental leading 's3://' or trailing '/'
+          RAW_BUCKET="${{ secrets.AWS_S3_BUCKET }}"
+          CLEAN_BUCKET=$(echo "$RAW_BUCKET" | sed -e 's|^s3://||' -e 's|/*$||')
+          DEPLOY_REGION="${{ secrets.AWS_REGION || 'ap-south-1' }}"
+
+          echo "Target S3 Bucket: ${CLEAN_BUCKET}"
+          echo "Target Region: ${DEPLOY_REGION}"
+
+          aws s3 sync dist/ "s3://${CLEAN_BUCKET}" --delete --region "${DEPLOY_REGION}"
 
       - name: Invalidate CloudFront Cache
         run: |
+          DEPLOY_REGION="${{ secrets.AWS_REGION || 'ap-south-1' }}"
           aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*" \
+            --region "${DEPLOY_REGION}"

@@ -12,23 +12,17 @@ export function useProjectDetails(projectId?: string) {
   const [projectObservations, setProjectObservations] = useState<Observation[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Mock role state for testing frontend permissions
-  const [userRole, setUserRole] = useState<MockUserRole>(() => {
-    const saved = localStorage.getItem('shrishti_mock_user_role')
-    if (saved === 'admin' || saved === 'project_expert' || saved === 'field_worker') {
-      return saved
-    }
-    return 'field_worker'
-  })
-
-  const canManageProject = userRole === 'admin' || userRole === 'project_expert'
-  const [isJoined, setIsJoined] = useState(false)
+  // User permission role securely locked to Field Worker mode
+  const userRole: MockUserRole = 'field_worker'
+  const canManageProject = false
+  const [isJoined, setIsJoined] = useState(() => (projectId ? getJoinedProjectIds().includes(projectId) : false))
 
   // Project editing modal state
   const [showEditModal, setShowEditModal] = useState(false)
   const [editName, setEditName] = useState('')
   const [editOrganization, setEditOrganization] = useState('')
   const [editTargetRegion, setEditTargetRegion] = useState('')
+  const [editDistrict, setEditDistrict] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editStatus, setEditStatus] = useState<'active' | 'completed' | 'archived'>('active')
   const [isSavingEdit, setIsSavingEdit] = useState(false)
@@ -47,6 +41,7 @@ export function useProjectDetails(projectId?: string) {
         setEditName(proj.name)
         setEditOrganization(proj.organization || '')
         setEditTargetRegion(proj.targetRegion || '')
+        setEditDistrict(proj.district || '')
         setEditDescription(proj.description || '')
         setEditStatus(proj.status || 'active')
       }
@@ -79,9 +74,8 @@ export function useProjectDetails(projectId?: string) {
     setIsJoined(updated.includes(projectId))
   }
 
-  const handleRoleChange = (role: MockUserRole) => {
-    setUserRole(role)
-    localStorage.setItem('shrishti_mock_user_role', role)
+  const handleRoleChange = (_role: MockUserRole) => {
+    // Role is securely locked to field_worker mode
   }
 
   const handleRecordObservationClick = () => {
@@ -110,11 +104,13 @@ export function useProjectDetails(projectId?: string) {
     setIsSavingEdit(true)
     try {
       const now = new Date().toISOString()
+      const cleanDesc = editDescription.trim()
       const updates = {
         name: editName.trim(),
         organization: editOrganization.trim() || undefined,
         targetRegion: editTargetRegion.trim() || undefined,
-        description: editDescription.trim() || undefined,
+        district: editDistrict.trim() || undefined,
+        description: cleanDesc || undefined,
         status: editStatus,
         updatedAt: now,
       }
@@ -132,6 +128,7 @@ export function useProjectDetails(projectId?: string) {
         syncStatus,
       })
 
+      setProject((prev) => (prev ? { ...prev, ...updates, syncStatus } : null))
       setShowEditModal(false)
       await loadData()
     } catch (err) {
@@ -185,6 +182,8 @@ export function useProjectDetails(projectId?: string) {
     setEditOrganization,
     editTargetRegion,
     setEditTargetRegion,
+    editDistrict,
+    setEditDistrict,
     editDescription,
     setEditDescription,
     editStatus,

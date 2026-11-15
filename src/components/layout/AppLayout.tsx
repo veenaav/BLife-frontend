@@ -23,12 +23,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
     )
   }
 
-  const isProjectsRoute = normalizedPath === '/projects'
+  const isFixedLayoutRoute = normalizedPath === '/projects' || normalizedPath === '/observations'
 
-  if (isProjectsRoute) {
+  if (isFixedLayoutRoute) {
     return (
       <div className="fixed inset-0 h-screen h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#08221A] text-[#F0F5EF] antialiased selection:bg-[#A6F16A] selection:text-[#061812] flex flex-col">
-        {/* Top Application Bar with B-LIFFE branding */}
+        {/* Top Application Bar with BLife branding */}
         <div className="shrink-0 z-20">
           <TopBar />
         </div>
@@ -57,7 +57,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="relative min-h-screen bg-[#08221A] text-[#F0F5EF] antialiased selection:bg-[#A6F16A] selection:text-[#061812]">
       {/* Main content layer */}
       <div className="relative z-10 flex min-h-screen flex-col">
-        {/* Top Application Bar with B-LIFFE branding */}
+        {/* Top Application Bar with BLife branding */}
         <TopBar />
 
         {/* Main Viewport Content Area */}

@@ -1,5 +1,5 @@
 /**
- * Ward Identification Service for B-Liffe
+ * Ward Identification Service for BLife
  *
  * Provides GPS-based ward identification matching against official
  * Thiruvananthapuram Municipal Corporation ward reference dataset.

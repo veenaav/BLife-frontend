@@ -1,5 +1,5 @@
 /**
- * Profile data types and interfaces for B-Liffe.
+ * Profile data types and interfaces for BLife.
  * 
  * NOTE: The backend, database, and real authentication system have not yet
  * been implemented. These types define the contract for the frontend UI state
@@ -27,6 +27,8 @@ export interface UserProfile {
   displayName: string
   email: string
   bio: string
+  aboutMe?: string
+  roleTag?: string
   avatarType: AvatarType
   avatarPresetId: AvatarPresetId
   avatarCustomUrl?: string | null
@@ -37,6 +39,8 @@ export interface ProfileUpdateInput {
   fullName: string
   displayName?: string
   bio?: string
+  aboutMe?: string
+  roleTag?: string
   avatarType: AvatarType
   avatarPresetId: AvatarPresetId
   avatarCustomUrl?: string | null

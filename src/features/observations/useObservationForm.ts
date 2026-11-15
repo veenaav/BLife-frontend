@@ -19,6 +19,8 @@ import { useObservationGeolocation } from './useObservationGeolocation'
 import { generateId } from '@/lib/utils'
 import { createObservationOnBackend, updateObservationOnBackend } from '@/lib/apiService'
 import { extractExifLocation, type ExifLocationResult } from '@/lib/exifReader'
+import { useProfile } from '@/context/ProfileContext'
+import { getCurrentUserId } from '@/lib/profileService'
 
 export function useObservationForm() {
   const { projectId, wardId, surveyId, id } = useParams<{
@@ -36,6 +38,13 @@ export function useObservationForm() {
 
   const [existingRecord, setExistingRecord] = useState<Observation | null>(null)
   const [isLoadingExisting, setIsLoadingExisting] = useState(Boolean(id))
+
+  // User Profile & Authentication for Row-Level Security
+  const { profile, isGuest } = useProfile()
+  const currentUserId = profile?.id || getCurrentUserId()
+  const observerDisplayName = isGuest
+    ? 'Guest Observer'
+    : (profile?.displayName || profile?.fullName || undefined)
 
   // Context state for active survey session
   const [activeProject, setActiveProject] = useState<Project | null>(null)
@@ -82,6 +91,11 @@ export function useObservationForm() {
   const [traditionalKnowledgeSource, setTraditionalKnowledgeSource] = useState('')
   const [otherTraditionalKnowledgeSource, setOtherTraditionalKnowledgeSource] = useState('')
 
+  // Distance and position verification state
+  const [isAtExactSpot, setIsAtExactSpot] = useState<YesNo | ''>('Yes')
+  const [estimatedDistanceMeters, setEstimatedDistanceMeters] = useState<number | ''>('')
+
+
   // Modals & Tips visibility
   const [showLocationTips, setShowLocationTips] = useState(false)
   const [showEcologyTips, setShowEcologyTips] = useState(false)
@@ -101,6 +115,7 @@ export function useObservationForm() {
   const [primaryPhotoIndex, setPrimaryPhotoIndex] = useState<number>(0)
   const [showPhotoTips, setShowPhotoTips] = useState(false)
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false)
+  const [exifWarning, setExifWarning] = useState<string | null>(null)
 
   // Submission state
   const [saved, setSaved] = useState(false)
@@ -173,6 +188,12 @@ export function useObservationForm() {
         setHasTraditionalKnowledge(existing.hasTraditionalKnowledge || '')
         setTraditionalKnowledgeSource(existing.traditionalKnowledgeSource || '')
         setOtherTraditionalKnowledgeSource(existing.otherTraditionalKnowledgeSource || '')
+        setIsAtExactSpot(existing.isAtExactSpot || 'Yes')
+        setEstimatedDistanceMeters(
+          existing.estimatedDistanceMeters !== undefined && existing.estimatedDistanceMeters !== null
+            ? existing.estimatedDistanceMeters
+            : ''
+        )
 
         if (
           existing.latitude !== null &&
@@ -333,10 +354,13 @@ export function useObservationForm() {
     setHasTraditionalKnowledge('')
     setTraditionalKnowledgeSource('')
     setOtherTraditionalKnowledgeSource('')
+    setIsAtExactSpot('Yes')
+    setEstimatedDistanceMeters('')
     geo.resetLocation()
     setPhotos([])
     setPhotoMetadata([])
     setPhotoCapturedAt(null)
+    setExifWarning(null)
     setPrimaryPhotoIndex(0)
     setIsSaving(false)
     setSaved(false)
@@ -423,22 +447,27 @@ export function useObservationForm() {
       const newFiles = Array.from(fileList)
       const nowIso = new Date().toISOString()
       const newMetaList: PhotoLocationMetadata[] = []
-      let needsDeviceGps = false
 
-      // Loop through and extract EXIF metadata for EVERY uploaded image file
+      // Loop through and extract EXIF metadata for EVERY uploaded image file (Requirement 1 & 2)
       for (let i = 0; i < newFiles.length; i++) {
         const file = newFiles[i]
         const photoId = generateId()
 
-        let exifResult: ExifLocationResult = { hasGps: false, latitude: null, longitude: null, capturedAt: null }
+        let exifResult: ExifLocationResult = {
+          hasGps: false,
+          latitude: null,
+          longitude: null,
+          capturedAt: null,
+        }
+
         try {
+          // extractExifLocation reads the file using FileReader as an ArrayBuffer
           exifResult = await extractExifLocation(file)
-        } catch {
-          // Ignore EXIF parsing error, fall back to device GPS
+        } catch (err) {
+          console.warn('[handleAddPhotos] EXIF extraction error:', err)
         }
 
         if (exifResult.hasGps && exifResult.latitude !== null && exifResult.longitude !== null) {
-          // EXIF GPS metadata successfully extracted for this specific photo
           newMetaList.push({
             id: photoId,
             fileName: file.name,
@@ -450,17 +479,16 @@ export function useObservationForm() {
             locationSource: 'EXIF',
           })
         } else {
-          // Mark that this photo needs device GPS fallback
-          needsDeviceGps = true
+          // EXIF GPS metadata missing from this photo (Requirement 4)
           newMetaList.push({
             id: photoId,
             fileName: file.name,
-            latitude: geoRef.current.location?.latitude ?? null,
-            longitude: geoRef.current.location?.longitude ?? null,
-            accuracy: geoRef.current.locationAccuracy ?? null,
-            capturedAt: nowIso,
-            gpsCapturedAt: geoRef.current.gpsCapturedAt || nowIso,
-            locationSource: 'GPS',
+            latitude: null,
+            longitude: null,
+            accuracy: null,
+            capturedAt: exifResult.capturedAt || nowIso,
+            gpsCapturedAt: null,
+            locationSource: null,
           })
         }
       }
@@ -471,13 +499,13 @@ export function useObservationForm() {
       setPhotos(combinedPhotos)
       setPhotoMetadata(combinedMeta)
 
-      // Automatically select best primary photo reference:
-      // If no valid GPS lock is active, find the first photo with valid EXIF GPS coordinates
+      // Check if ANY photo in the combined set has EXIF GPS (Requirement 3)
       const firstExifIdx = combinedMeta.findIndex(
         (m) => m.locationSource === 'EXIF' && m.latitude !== null && m.longitude !== null
       )
 
       if (firstExifIdx !== -1) {
+        // Valid EXIF GPS is present: populate location and lock source to EXIF
         const currentPrimaryMeta = combinedMeta[primaryPhotoIndex]
         const shouldSwitchPrimary =
           !currentPrimaryMeta ||
@@ -497,40 +525,50 @@ export function useObservationForm() {
             setPhotoCapturedAt(primaryMeta.capturedAt)
           }
         }
+        setExifWarning(null)
+      } else {
+        // EXIF GPS metadata is completely missing from uploaded photos (Requirement 4)
+        // DO NOT automatically trigger browser live geolocation API!
+        if (!geoRef.current.location) {
+          setExifWarning(
+            'No GPS coordinates found in uploaded photo EXIF (common for screenshots, messaging app downloads, or stripped photos).'
+          )
+        }
       }
 
-      // If any photos need device GPS fallback, trigger device geolocation once
-      if (needsDeviceGps && firstExifIdx === -1) {
-        try {
-          const coords = await geoRef.current.getLocation()
-          if (coords) {
-            setPhotoMetadata((prev) =>
-              prev.map((meta) => {
-                if (meta.locationSource === 'GPS' && meta.latitude === null) {
-                  return {
-                    ...meta,
-                    latitude: coords.latitude,
-                    longitude: coords.longitude,
-                    accuracy: geoRef.current.locationAccuracy,
-                    gpsCapturedAt: new Date().toISOString(),
-                  }
-                }
-                return meta
-              })
-            )
-            if (!photoCapturedAt) {
-              setPhotoCapturedAt(nowIso)
-            }
-          }
-        } finally {
-          setIsProcessingPhotos(false)
-        }
-      } else {
-        setIsProcessingPhotos(false)
-      }
+      setIsProcessingPhotos(false)
     },
     [saved, photos, photoMetadata, primaryPhotoIndex, photoCapturedAt]
   )
+
+  // Allows user to explicitly capture device live GPS if photo metadata is missing (Requirement 4 fallback)
+  const handleUseDeviceGps = useCallback(async () => {
+    if (saved) return
+    setIsProcessingPhotos(true)
+    try {
+      const coords = await geoRef.current.getLocation()
+      if (coords) {
+        setExifWarning(null)
+        setPhotoMetadata((prev) =>
+          prev.map((meta) => {
+            if (meta.latitude === null || meta.locationSource !== 'EXIF') {
+              return {
+                ...meta,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                accuracy: geoRef.current.locationAccuracy ?? null,
+                locationSource: 'GPS',
+                gpsCapturedAt: new Date().toISOString(),
+              }
+            }
+            return meta
+          })
+        )
+      }
+    } finally {
+      setIsProcessingPhotos(false)
+    }
+  }, [saved])
 
   // Remove photo thumbnail by index and clear timestamp if all photos are removed
   const handleRemovePhoto = (indexToRemove: number) => {
@@ -539,20 +577,34 @@ export function useObservationForm() {
       const updated = prev.filter((_, idx) => idx !== indexToRemove)
       if (updated.length === 0) {
         setPhotoCapturedAt(null)
+        setExifWarning(null)
       }
       return updated
     })
     setPhotoMetadata((prev) => {
       const updated = prev.filter((_, idx) => idx !== indexToRemove)
-      setPrimaryPhotoIndex((prevPrimary) => {
-        if (prevPrimary === indexToRemove) {
-          const nextIdx = updated.findIndex((m) => m.latitude !== null)
-          return nextIdx !== -1 ? nextIdx : 0
-        } else if (prevPrimary > indexToRemove) {
-          return prevPrimary - 1
+      if (updated.length === 0) {
+        if (geoRef.current.locationSource === 'EXIF') {
+          geoRef.current.resetLocation()
         }
-        return prevPrimary
-      })
+        setPrimaryPhotoIndex(0)
+        return updated
+      }
+
+      const remainingExifIdx = updated.findIndex((m) => m.locationSource === 'EXIF' && m.latitude !== null)
+      if (remainingExifIdx !== -1) {
+        setPrimaryPhotoIndex(remainingExifIdx)
+        const primaryMeta = updated[remainingExifIdx]
+        if (primaryMeta && primaryMeta.latitude !== null && primaryMeta.longitude !== null) {
+          geoRef.current.setExifLocation(
+            { latitude: primaryMeta.latitude, longitude: primaryMeta.longitude },
+            primaryMeta.capturedAt
+          )
+        }
+      } else if (geoRef.current.locationSource === 'EXIF') {
+        geoRef.current.resetLocation()
+        setPrimaryPhotoIndex(0)
+      }
       return updated
     })
   }
@@ -665,6 +717,10 @@ export function useObservationForm() {
         const updatedObservation: Observation = {
           ...existingRecord,
           id: existingRecord.id,
+          // Row-Level Security: Link record strictly to observer
+          observer_id: existingRecord.observer_id || existingRecord.observerId || currentUserId,
+          observerId: existingRecord.observerId || existingRecord.observer_id || currentUserId,
+          observerName: existingRecord.observerName || observerDisplayName,
           surveyId: existingRecord.surveyId,
           wardId: geo.autoWardId ?? existingRecord.wardId,
           wardName:
@@ -718,6 +774,11 @@ export function useObservationForm() {
               ? geo.locationAccuracy
               : null,
           gpsCapturedAt: geo.gpsCapturedAt || existingRecord.gpsCapturedAt || null,
+          isAtExactSpot: isAtExactSpot || undefined,
+          estimatedDistanceMeters:
+            isAtExactSpot === 'No' && estimatedDistanceMeters !== '' && !isNaN(Number(estimatedDistanceMeters))
+              ? Number(estimatedDistanceMeters)
+              : undefined,
           photo: photos[primaryPhotoIndex] || photos[0] || null,
           photos,
           photoMetadata: photoMetadata.length > 0 ? photoMetadata : undefined,
@@ -740,7 +801,8 @@ export function useObservationForm() {
           updatedObservation.syncStatus = 'pending'
         }
         await db.observations.put(updatedObservation)
-        setSaved(true)
+        resetForm()
+        return true
       } else {
         const finalProjectId = isProjectContext
           ? initialProjectId
@@ -755,6 +817,10 @@ export function useObservationForm() {
 
         const newObservation: Observation = {
           id: generateId(),
+          // Row-Level Security: Private by default, strictly linked to authenticated observer
+          observer_id: currentUserId,
+          observerId: currentUserId,
+          observerName: observerDisplayName,
           surveyId: surveyId || undefined,
           wardId: geo.autoWardId || undefined,
           wardName:
@@ -808,6 +874,11 @@ export function useObservationForm() {
               ? geo.locationAccuracy
               : null,
           gpsCapturedAt: geo.gpsCapturedAt || null,
+          isAtExactSpot: isAtExactSpot || undefined,
+          estimatedDistanceMeters:
+            isAtExactSpot === 'No' && estimatedDistanceMeters !== '' && !isNaN(Number(estimatedDistanceMeters))
+              ? Number(estimatedDistanceMeters)
+              : undefined,
           photo: photos[primaryPhotoIndex] || photos[0] || null,
           photos,
           photoMetadata: photoMetadata.length > 0 ? photoMetadata : undefined,
@@ -827,10 +898,13 @@ export function useObservationForm() {
           newObservation.syncStatus = 'pending'
         }
         await db.observations.add(newObservation)
-        setSaved(true)
+        resetForm()
+        return true
       }
+      return true
     } catch (error) {
       alert(`Failed to save observation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      return false
     } finally {
       setIsSaving(false)
     }
@@ -936,16 +1010,24 @@ export function useObservationForm() {
     setShowPhotoTips,
     isProcessingPhotos,
     saved,
+    setSaved,
     isSaving,
     photoPreviews,
     primaryPhotoIndex,
     selectPrimaryPhoto,
+    isAtExactSpot,
+    setIsAtExactSpot,
+    estimatedDistanceMeters,
+    setEstimatedDistanceMeters,
     geo,
     resetForm,
     handleStatusChange,
     handleMicroHabitatChange,
     handleTraditionalKnowledgeChange,
     handleTraditionalKnowledgeSourceChange,
+    exifWarning,
+    setExifWarning,
+    handleUseDeviceGps,
     handleAddPhotos,
     handleRemovePhoto,
     handleSaveObservation,
