@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to AWS S3 & CloudFront
 
 on:
   push:
@@ -6,21 +6,10 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
-
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,16 +24,36 @@ jobs:
         run: npm ci
 
       - name: Build project
+        env:
+          VITE_BASE_URL: '/'
+          # Relative '/api' via CloudFront reverse proxy (fixes Mixed Content)
+          VITE_API_URL: ${{ secrets.VITE_API_URL || '' }}
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          path: './dist'
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY || secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy build artifacts to S3
+        run: |
+          # Sanitize bucket name: strips any accidental leading 's3://' or trailing '/'
+          RAW_BUCKET="${{ secrets.AWS_S3_BUCKET }}"
+          CLEAN_BUCKET=$(echo "$RAW_BUCKET" | sed -e 's|^s3://||' -e 's|/*$||')
+          DEPLOY_REGION="${{ secrets.AWS_REGION || 'ap-south-1' }}"
+
+          echo "Target S3 Bucket: ${CLEAN_BUCKET}"
+          echo "Target Region: ${DEPLOY_REGION}"
+
+          aws s3 sync dist/ "s3://${CLEAN_BUCKET}" --delete --region "${DEPLOY_REGION}"
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          DEPLOY_REGION="${{ secrets.AWS_REGION || 'ap-south-1' }}"
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*" \
+            --region "${DEPLOY_REGION}"
