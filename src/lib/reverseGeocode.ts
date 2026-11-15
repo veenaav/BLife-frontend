@@ -36,14 +36,22 @@ const DISTRICT_EN_MAP: Record<string, string> = {
   'കാസർകോട്': 'Kasaragod',
 }
 
+export interface NominatimResponse {
+  address?: Record<string, string>
+  namedetails?: Record<string, string>
+  name?: string
+  display_name?: string
+  [key: string]: unknown
+}
+
 /**
  * Extracts and formats human-readable location name in English from Nominatim response.
  * Prioritizes local address components (suburb, village, town, city) along with the district,
  * ensuring clean English formatting (e.g., "Pulloor, Thrissur").
  */
-export function parseNominatimAddress(data: any): ReverseGeocodeResult {
-  const address = (data && typeof data === 'object' ? data.address : null) || {}
-  const namedetails = (data && typeof data === 'object' ? data.namedetails : null) || {}
+export function parseNominatimAddress(data?: NominatimResponse | null): ReverseGeocodeResult {
+  const address = data?.address || {}
+  const namedetails = data?.namedetails || {}
 
   const getField = (keys: string[]): string => {
     for (const key of keys) {

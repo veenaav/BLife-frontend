@@ -25,17 +25,16 @@ export async function uploadImageToS3(
   const token = getAuthToken()
   const formData = new FormData()
 
-  let filename = 'photo.jpg'
-  if (fileOrBlob instanceof File && fileOrBlob.name) {
-    filename = fileOrBlob.name
-  } else {
-    const ext = fileOrBlob.type.includes('png')
-      ? '.png'
-      : fileOrBlob.type.includes('webp')
-      ? '.webp'
-      : '.jpg'
-    filename = `field_${Date.now()}${ext}`
-  }
+  const filename =
+    fileOrBlob instanceof File && fileOrBlob.name
+      ? fileOrBlob.name
+      : `field_${Date.now()}${
+          fileOrBlob.type.includes('png')
+            ? '.png'
+            : fileOrBlob.type.includes('webp')
+            ? '.webp'
+            : '.jpg'
+        }`
 
   formData.append('file', fileOrBlob, filename)
   formData.append('folder', folder)

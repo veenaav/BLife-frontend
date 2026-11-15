@@ -1,5 +1,6 @@
 import { db, type Project, type Observation, type Ward, type Survey } from '@/db/database'
 import { getAuthToken, getCurrentUserId } from './profileService'
+import { uploadImageToS3 } from './mediaService'
 import type { WardIdentificationResult } from './wardService'
 
 export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')

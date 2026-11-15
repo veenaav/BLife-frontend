@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { db, type Project } from '@/db/database'
@@ -20,7 +20,7 @@ export default function MyProjects() {
   const [observationCounts, setObservationCounts] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       const joinedIds = getJoinedProjectIds()
@@ -42,11 +42,11 @@ export default function MyProjects() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentUserId])
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
   const handleLeaveProject = (projectId: string, projectName: string) => {
     if (window.confirm(`Leave project "${projectName}"? You can re-join anytime.`)) {

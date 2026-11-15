@@ -142,21 +142,6 @@ export function setLocalProfile(profile: UserProfile): void {
   }
 }
 
-async function safeParseJson(res: Response): Promise<any> {
-  const contentType = res.headers.get('content-type') || ''
-  if (contentType.includes('application/json')) {
-    return await res.json()
-  }
-  const text = await res.text()
-  if (res.status === 404) {
-    throw new Error('Backend service endpoint not found (404). Please verify backend URL.')
-  }
-  if (res.status === 504 || res.status === 502) {
-    throw new Error(`Backend gateway error (${res.status}): Elastic Beanstalk API is currently updating, starting up, or timed out.`)
-  }
-  throw new Error("Server returned non-JSON response (" + res.status + "): " + text.slice(0, 120))
-}
-
 export async function apiRegister(fullName: string, email: string, password: string): Promise<{ user: UserProfile; token: string }> {
   const normalizedEmail = email.trim().toLowerCase()
   const resolvedName = fullName.trim()

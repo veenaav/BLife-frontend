@@ -145,7 +145,7 @@ export function useObservationGeolocation() {
             ])
 
             // If EXIF was applied while reverse geocode was running, do not overwrite
-            if ((locationSourceRef.current as any) === 'EXIF') {
+            if ((locationSourceRef.current as LocationSource | null) === 'EXIF') {
               setIsReverseGeocoding(false)
               return
             }

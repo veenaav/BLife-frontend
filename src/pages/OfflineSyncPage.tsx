@@ -24,27 +24,27 @@ export default function OfflineSyncPage({ onBack }: OfflineSyncPageProps) {
   const [surveyCount, setSurveyCount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadData = async () => {
-    try {
-      const [allObs, projCount, survCount] = await Promise.all([
-        db.observations.toArray(),
-        db.projects.count(),
-        db.surveys.count(),
-      ])
-      const userObs = allObs.filter(
-        (obs) => (obs.observer_id || obs.observerId || 'bliffe-demo-user') === currentUserId
-      )
-      setObservationCount(userObs.length)
-      setProjectCount(projCount)
-      setSurveyCount(survCount)
-    } catch (err) {
-      console.error('Failed to load storage counts:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [allObs, projCount, survCount] = await Promise.all([
+          db.observations.toArray(),
+          db.projects.count(),
+          db.surveys.count(),
+        ])
+        const userObs = allObs.filter(
+          (obs) => (obs.observer_id || obs.observerId || 'bliffe-demo-user') === currentUserId
+        )
+        setObservationCount(userObs.length)
+        setProjectCount(projCount)
+        setSurveyCount(survCount)
+      } catch (err) {
+        console.error('Failed to load storage counts:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     loadData()
   }, [currentUserId])
 

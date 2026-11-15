@@ -74,7 +74,8 @@ export function useProjectDetails(projectId?: string) {
     setIsJoined(updated.includes(projectId))
   }
 
-  const handleRoleChange = (_role: MockUserRole) => {
+  const handleRoleChange = (_role?: MockUserRole) => {
+    void _role
     // Role is securely locked to field_worker mode
   }
 

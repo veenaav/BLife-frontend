@@ -441,6 +441,7 @@ export function useObservationForm() {
 
   const handleAddPhotos = useCallback(
     async (fileList: FileList | null, _isCameraCapture: boolean = false) => {
+      void _isCameraCapture
       if (saved || !fileList || fileList.length === 0) return
       setIsProcessingPhotos(true)
 

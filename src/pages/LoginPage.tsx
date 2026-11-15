@@ -65,8 +65,9 @@ export default function LoginPage() {
       await apiLogin(email, password)
       setGuestSession(false)
       navigate('/home')
-    } catch (err: any) {
-      setServerError(err.message || 'Login failed. Please check credentials or backend connection.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Login failed. Please check credentials or backend connection.'
+      setServerError(message)
     } finally {
       setIsSubmitting(false)
     }

@@ -85,13 +85,13 @@ export default function ObservationDetailPage() {
       }
     }
     loadObservation()
-  }, [id])
+  }, [id, currentUserId])
 
   // 2. Resolve photographs into object URLs with lifecycle cleanup
   useEffect(() => {
     if (!observation) return
 
-    const raw: any[] = observation.photos?.length
+    const raw: (Blob | string)[] = observation.photos?.length
       ? observation.photos
       : observation.photo
       ? [observation.photo]

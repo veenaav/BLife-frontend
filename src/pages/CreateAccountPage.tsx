@@ -88,8 +88,9 @@ export default function CreateAccountPage() {
       await apiRegister(fullName, email, password)
       setGuestSession(false)
       navigate('/home')
-    } catch (err: any) {
-      setServerError(err.message || 'Registration failed. Please check backend connection.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Registration failed. Please check backend connection.'
+      setServerError(message)
     } finally {
       setIsSubmitting(false)
     }
